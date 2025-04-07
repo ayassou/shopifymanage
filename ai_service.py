@@ -559,7 +559,27 @@ class AIService:
                         image_row["Image Alt Text"] = f"{csv_data['Title']} - Image {i+1}"
                         formatted_data.append(image_row)
             
-            # Create a DataFrame for CSV export
+            # Create a DataFrame for CSV export and handle empty data
+            if not formatted_data:
+                formatted_data = [{
+                    "Handle": "",
+                    "Title": "",
+                    "Body HTML": "",
+                    "Vendor": "",
+                    "Product Category": "",
+                    "Type": "",
+                    "Tags": "",
+                    "Published": "TRUE",
+                    "Option1 Name": "",
+                    "Option1 Value": "",
+                    "Option2 Name": "",
+                    "Option2 Value": "",
+                    "Option3 Name": "",
+                    "Option3 Value": "",
+                    "Variant SKU": "",
+                    "Variant Price": "",
+                    "Image Src": "",
+                }]
             df = pd.DataFrame(formatted_data)
             
             # Return in a format compatible with the existing system
