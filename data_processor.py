@@ -113,16 +113,20 @@ def process_data(df, shopify_client):
     # Process each row in the DataFrame
     for index, row in df.iterrows():
         try:
-            # Extract basic product information
+            # Validate required fields
+            if 'title' not in row or pd.isna(row['title']):
+                raise ValueError("Product title is required")
+
+            # Extract basic product information with defaults
             product_data = {
                 'product': {
-                    'title': row['title'],
-                    'body_html': row.get('description', ''),
-                    'vendor': row.get('vendor', ''),
-                    'product_type': row.get('product_type', ''),
-                    'tags': row.get('tags', ''),
-                    'status': row.get('status', 'active'),
-                    'published': row.get('published', True),
+                    'title': str(row['title']).strip(),
+                    'body_html': str(row.get('description', '')).strip(),
+                    'vendor': str(row.get('vendor', 'Default Vendor')).strip(),
+                    'product_type': str(row.get('product_type', 'General')).strip(),
+                    'tags': str(row.get('tags', '')).strip(),
+                    'status': 'active',
+                    'published': True,
                 }
             }
             
