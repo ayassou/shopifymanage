@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block title %}Image Caption Generator{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">AI Image Caption Generator</h1>
+            
+            {% if not ai_settings %}
+            <div class="alert alert-warning">
+                <h5>AI API Settings Required</h5>
+                <p>You need to configure your AI API settings before using this feature.</p>
+                <a href="{{ url_for('main.ai_settings') }}" class="btn btn-primary">Configure AI Settings</a>
+            </div>
+            {% else %}
+            
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Generate Product Image Captions</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Generate SEO-optimized alt text, captions, and descriptive metadata for your product images
+                        using advanced AI vision models. This tool helps improve accessibility, SEO rankings, and conversion rates.
+                    </p>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.batch_name.label(class="form-label") }}
+                                    {{ form.batch_name(class="form-control") }}
+                                    <small class="form-text text-muted">{{ form.batch_name.description }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0">Image Source</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="input-group mb-3">
+                                            {% for subfield in form.input_type %}
+                                            <div class="form-check form-check-inline mb-3 me-3">
+                                                {{ subfield(class="form-check-input") }}
+                                                {{ subfield.label(class="form-check-label") }}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3" id="urlInputSection">
+                                    <div class="form-group">
+                                        <label for="source_detail" class="form-label">Image URLs</label>
+                                        <textarea name="source_detail" id="source_detail" rows="4" class="form-control"
+                                            placeholder="Enter one URL per line for images you want to caption"></textarea>
+                                        <small class="form-text text-muted">Enter one image URL per line. Supported formats: JPG, PNG, WEBP</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3 d-none" id="uploadInputSection">
+                                    <p>You'll be prompted to upload images after creating the batch.</p>
+                                </div>
+                                
+                                <div class="mt-3 d-none" id="shopifyInputSection">
+                                    {% if not has_shopify_settings %}
+                                    <div class="alert alert-warning">
+                                        <p>Shopify API settings required for this option.</p>
+                                        <a href="{{ url_for('main.settings') }}" class="btn btn-sm btn-primary">Configure Shopify Settings</a>
+                                    </div>
+                                    {% else %}
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="shopify_product_id" class="form-label">Product ID (Optional)</label>
+                                                <input type="text" name="shopify_product_id" id="shopify_product_id" class="form-control"
+                                                    placeholder="Enter a specific product ID">
+                                                <small class="form-text text-muted">Leave blank to process images from all products</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="shopify_collection_id" class="form-label">Collection ID (Optional)</label>
+                                                <input type="text" name="shopify_collection_id" id="shopify_collection_id" class="form-control"
+                                                    placeholder="Enter a collection ID">
+                                                <small class="form-text text-muted">Process images from a specific collection</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-check mt-3">
+                                        <input class="form-check-input" type="checkbox" name="missing_alt_only" id="missing_alt_only" checked>
+                                        <label class="form-check-label" for="missing_alt_only">
+                                            Only process images missing alt text
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-group mt-3">
+                                        <label for="shopify_limit" class="form-label">Product Limit</label>
+                                        <input type="number" name="shopify_limit" id="shopify_limit" class="form-control" 
+                                            value="50" min="1" max="250">
+                                        <small class="form-text text-muted">Maximum number of products to process</small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mt-3 d-none" id="searchInputSection">
+                                    <div class="form-group">
+                                        <label for="search_query" class="form-label">Search Query</label>
+                                        <input type="text" name="search_query" id="search_query" class="form-control"
+                                            placeholder="e.g., blue denim jacket">
+                                        <small class="form-text text-muted">Enter keywords to search for product images</small>
+                                    </div>
+                                    
+                                    <div class="form-group mt-3">
+                                        <label for="search_count" class="form-label">Number of Images</label>
+                                        <input type="number" name="search_count" id="search_count" class="form-control" 
+                                            value="5" min="1" max="20">
+                                        <small class="form-text text-muted">Number of images to retrieve from search</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0">Output Options</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            {{ form.output_format.label(class="form-label") }}
+                                            {{ form.output_format(class="form-select") }}
+                                            <small class="form-text text-muted">How do you want to use the generated captions?</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            {{ form.caption_style.label(class="form-label") }}
+                                            {{ form.caption_style(class="form-select") }}
+                                            <small class="form-text text-muted">Style of caption to generate</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="max_alt_length" class="form-label">Max Alt Text Length</label>
+                                            <input type="number" name="max_alt_length" id="max_alt_length" class="form-control" 
+                                                value="125" min="50" max="250">
+                                            <small class="form-text text-muted">Maximum character length for alt text (recommended: 125)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="include_keywords" id="include_keywords" checked>
+                                            <label class="form-check-label" for="include_keywords">
+                                                Generate SEO Keywords
+                                            </label>
+                                            <div class="form-text text-muted">Extract key terms for SEO optimization</div>
+                                        </div>
+                                        
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" name="include_product_type" id="include_product_type" checked>
+                                            <label class="form-check-label" for="include_product_type">
+                                                Suggest Product Category
+                                            </label>
+                                            <div class="form-text text-muted">Have AI suggest product category based on image</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="generate_title" id="generate_title" checked>
+                                            <label class="form-check-label" for="generate_title">
+                                                Generate Product Title
+                                            </label>
+                                            <div class="form-text text-muted">Have AI suggest product names from images</div>
+                                        </div>
+                                        
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" name="shopify_tags" id="shopify_tags" checked>
+                                            <label class="form-check-label" for="shopify_tags">
+                                                Generate Shopify Tags
+                                            </label>
+                                            <div class="form-text text-muted">Create product tags for categorization</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">Generate Image Captions</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Show/hide appropriate input sections based on selected input type
+    const inputTypeRadios = document.querySelectorAll('input[name="input_type"]');
+    const urlInputSection = document.getElementById('urlInputSection');
+    const uploadInputSection = document.getElementById('uploadInputSection');
+    const shopifyInputSection = document.getElementById('shopifyInputSection');
+    const searchInputSection = document.getElementById('searchInputSection');
+    
+    function updateInputSections() {
+        const selectedValue = document.querySelector('input[name="input_type"]:checked').value;
+        
+        // Hide all sections first
+        urlInputSection.classList.add('d-none');
+        uploadInputSection.classList.add('d-none');
+        shopifyInputSection.classList.add('d-none');
+        searchInputSection.classList.add('d-none');
+        
+        // Show the selected section
+        if (selectedValue === 'url') {
+            urlInputSection.classList.remove('d-none');
+        } else if (selectedValue === 'upload') {
+            uploadInputSection.classList.remove('d-none');
+        } else if (selectedValue === 'shopify') {
+            shopifyInputSection.classList.remove('d-none');
+        } else if (selectedValue === 'search') {
+            searchInputSection.classList.remove('d-none');
+        }
+    }
+    
+    // Add change event listeners to all input type radio buttons
+    inputTypeRadios.forEach(function(radio) {
+        radio.addEventListener('change', updateInputSections);
+    });
+    
+    // Initialize sections based on default selection
+    updateInputSections();
+    
+    // Update output format options based on input type
+    const outputFormatSelect = document.getElementById('output_format');
+    
+    inputTypeRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            const selectedValue = document.querySelector('input[name="input_type"]:checked').value;
+            
+            // Enable all options first
+            for (let i = 0; i < outputFormatSelect.options.length; i++) {
+                outputFormatSelect.options[i].disabled = false;
+            }
+            
+            // Disable incompatible options
+            if (selectedValue === 'shopify') {
+                // If Shopify is selected as input, prefer Shopify update as output
+                for (let i = 0; i < outputFormatSelect.options.length; i++) {
+                    if (outputFormatSelect.options[i].value === 'shopify_update') {
+                        outputFormatSelect.value = 'shopify_update';
+                        break;
+                    }
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

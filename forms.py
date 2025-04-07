@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileField, FileRequired, FileAllowed
+from flask_wtf.file import FileField, FileRequired, FileAllowed, MultipleFileField
 from wtforms import StringField, PasswordField, SubmitField, TextAreaField, SelectField, IntegerField, RadioField, BooleanField
 from wtforms.validators import DataRequired, URL, Optional, NumberRange
 
@@ -225,3 +225,89 @@ class PageGeneratorForm(FlaskForm):
                                 description='Use AI to create an on-brand featured image for this page')
                                 
     submit = SubmitField('Generate Page Content')
+
+
+class ImageCaptionGeneratorForm(FlaskForm):
+    """Form for the AI image caption generator"""
+    batch_name = StringField('Batch Name',
+                           validators=[DataRequired()],
+                           description='Name for this batch of images (for organization)')
+    
+    input_type = RadioField('Image Source', 
+                          choices=[
+                              ('url', 'Product URL (Scrape Images)'),
+                              ('upload', 'Upload Images'),
+                              ('shopify', 'Import from Shopify Store'),
+                              ('search', 'Web Image Search')
+                          ],
+                          default='url')
+    
+    # URL input fields
+    product_url = StringField('Product URL', 
+                            validators=[Optional(), URL()],
+                            description='Enter URL of a product page to extract images')
+    
+    # File upload fields
+    image_files = MultipleFileField('Upload Images',
+                                 validators=[Optional(), FileAllowed(['jpg', 'jpeg', 'png', 'gif', 'webp'], 
+                                                                 'Image files only!')],
+                                 description='Select multiple image files to upload')
+    
+    # Shopify import fields
+    product_type_filter = StringField('Product Type Filter',
+                                   validators=[Optional()],
+                                   description='Filter Shopify products by type (e.g., "T-shirts")')
+    
+    include_all_variants = BooleanField('Include All Variant Images', default=True,
+                                     description='Include images from all product variants')
+    
+    missing_alt_only = BooleanField('Only Products Missing Alt Text', default=True,
+                                  description='Only process products with missing alt text')
+    
+    # Image search fields
+    search_query = StringField('Search Query',
+                             validators=[Optional()],
+                             description='Keywords to search for product images (e.g., "blue denim jacket")')
+    
+    search_count = IntegerField('Number of Images',
+                              validators=[Optional(), NumberRange(min=1, max=20)],
+                              default=5,
+                              description='Number of images to retrieve from search')
+    
+    # Output options
+    output_format = SelectField('Output Format',
+                              choices=[
+                                  ('csv', 'CSV Export (for Shopify Import)'),
+                                  ('shopify', 'Direct Update to Shopify Store'),
+                                  ('library', 'Save to Image Library')
+                              ],
+                              default='csv')
+    
+    # Caption settings
+    caption_style = SelectField('Caption Style',
+                             choices=[
+                                 ('descriptive', 'Descriptive (Detailed Product Description)'),
+                                 ('seo', 'SEO-Optimized (Keyword Rich)'),
+                                 ('minimal', 'Minimal (Short & Concise)'),
+                                 ('technical', 'Technical (Feature-Focused)')
+                             ],
+                             default='descriptive')
+    
+    max_alt_length = IntegerField('Maximum Alt Text Length',
+                                validators=[Optional(), NumberRange(min=50, max=250)],
+                                default=125,
+                                description='Maximum character length for alt text (recommended: 125)')
+    
+    include_keywords = BooleanField('Generate SEO Keywords', default=True,
+                                  description='Extract key terms for SEO optimization')
+    
+    include_product_type = BooleanField('Suggest Product Category', default=True, 
+                                      description='Have AI suggest product category based on image')
+    
+    generate_title = BooleanField('Generate Product Title', default=True,
+                                description='Have AI suggest product names from images')
+    
+    shopify_tags = BooleanField('Generate Shopify Tags', default=True,
+                              description='Create product tags based on image analysis')
+    
+    submit = SubmitField('Process Images')

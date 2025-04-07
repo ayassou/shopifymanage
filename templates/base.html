@@ -54,7 +54,7 @@
                            href="{{ url_for('main.upload') }}">Upload Products</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if 'ai_generator' in request.path or 'blog_generator' in request.path or 'page_generator' in request.path %}active{% endif %}" 
+                        <a class="nav-link dropdown-toggle {% if 'ai_generator' in request.path or 'blog_generator' in request.path or 'page_generator' in request.path or 'image-captions' in request.path %}active{% endif %}" 
                            href="#" id="aiDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false">
                            <i class="fas fa-robot me-1"></i> AI Generator
@@ -64,6 +64,18 @@
                                 <a class="dropdown-item {% if request.path == url_for('main.ai_generator') %}active{% endif %}" 
                                    href="{{ url_for('main.ai_generator') }}">
                                    <i class="fas fa-box-open me-1"></i> Product Generator
+                                </a>
+                            <li>
+                                <a class="dropdown-item {% if request.path == url_for('main.image_caption_generator') %}active{% endif %}" 
+                                   href="{{ url_for('main.image_caption_generator') }}">
+                                   <i class="fas fa-image me-1"></i> Image Caption Generator
+                                </a>
+                            </li>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == url_for('main.image_caption_generator') %}active{% endif %}" 
+                                   href="{{ url_for('main.image_caption_generator') }}">
+                                   <i class="fas fa-image me-1"></i> Image Caption Generator
                                 </a>
                             </li>
                             <li>

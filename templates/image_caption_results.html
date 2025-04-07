@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+
+{% block title %}Image Caption Results{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Caption Generation Results</h1>
+                
+                {% if batch.export_format == 'csv' and batch.export_path %}
+                <a href="{{ url_for('main.download_image_captions', batch_id=batch.id) }}" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i> Download CSV
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Batch: {{ batch.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <table class="table">
+                                <tr>
+                                    <th>Batch Name:</th>
+                                    <td>{{ batch.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Source Type:</th>
+                                    <td>{{ batch.source_type|capitalize }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Export Format:</th>
+                                    <td>{{ batch.export_format|replace('_', ' ')|capitalize }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Created:</th>
+                                    <td>{{ batch.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Processing Stats</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-3">
+                                            <div class="h4">{{ stats.total }}</div>
+                                            <div class="small text-muted">Total</div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="h4">{{ stats.processed }}</div>
+                                            <div class="small text-muted">Processed</div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="h4 text-success">{{ stats.success }}</div>
+                                            <div class="small text-muted">Success</div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="h4 text-danger">{{ stats.failed }}</div>
+                                            <div class="small text-muted">Failed</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if batch.status == 'pending' or batch.status == 'processing' %}
+                                    <div class="progress mt-3">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                             role="progressbar" 
+                                             style="width: {{ (stats.processed / stats.total * 100)|round|int if stats.total > 0 else 0 }}%" 
+                                             aria-valuenow="{{ stats.processed }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="{{ stats.total }}">
+                                            {{ (stats.processed / stats.total * 100)|round|int if stats.total > 0 else 0 }}%
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="text-center mt-3">
+                                        <span class="badge 
+                                            {% if batch.status == 'completed' %}bg-success
+                                            {% elif batch.status == 'pending' or batch.status == 'processing' %}bg-primary
+                                            {% elif batch.status == 'failed' %}bg-danger
+                                            {% elif batch.status == 'completed_with_errors' %}bg-warning
+                                            {% else %}bg-secondary{% endif %}
+                                        ">
+                                            {{ batch.status|replace('_', ' ')|capitalize }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="images-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#images" type="button" role="tab" 
+                                            aria-controls="images" aria-selected="true">
+                                        Image Results
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="data-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#data" type="button" role="tab" 
+                                            aria-controls="data" aria-selected="false">
+                                        Generated Data
+                                    </button>
+                                </li>
+                                {% if batch.export_format == 'shopify_update' %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="shopify-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#shopify" type="button" role="tab" 
+                                            aria-controls="shopify" aria-selected="false">
+                                        Shopify Updates
+                                    </button>
+                                </li>
+                                {% endif %}
+                            </ul>
+                            
+                            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="resultTabsContent">
+                                <!-- Images Tab -->
+                                <div class="tab-pane fade show active" id="images" role="tabpanel" aria-labelledby="images-tab">
+                                    <div class="row">
+                                        {% for image in images %}
+                                        <div class="col-md-3 col-sm-4 col-6 mb-4">
+                                            <div class="card h-100 {% if image.status == 'completed' %}border-success{% elif image.status == 'failed' %}border-danger{% endif %}">
+                                                <div class="card-img-top position-relative" style="height: 200px; overflow: hidden;">
+                                                    {% if image.url %}
+                                                    <img src="{{ image.url }}" alt="{{ image.alt_text or 'Product image' }}" 
+                                                         class="w-100 h-100" style="object-fit: contain;">
+                                                    {% elif image.file_path %}
+                                                    <img src="/path/to/image/{{ image.filename }}" alt="{{ image.alt_text or 'Product image' }}" 
+                                                         class="w-100 h-100" style="object-fit: contain;">
+                                                    {% else %}
+                                                    <div class="bg-light d-flex justify-content-center align-items-center w-100 h-100">
+                                                        <span class="text-muted">No preview</span>
+                                                    </div>
+                                                    {% endif %}
+                                                    
+                                                    <div class="position-absolute top-0 end-0 p-2">
+                                                        <span class="badge 
+                                                            {% if image.status == 'completed' %}bg-success
+                                                            {% elif image.status == 'pending' %}bg-primary
+                                                            {% elif image.status == 'processing' %}bg-info
+                                                            {% elif image.status == 'failed' %}bg-danger
+                                                            {% else %}bg-secondary{% endif %}
+                                                        ">
+                                                            {{ image.status|capitalize }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body small">
+                                                    <h6 class="card-title text-truncate">
+                                                        {% if image.product_suggested_name %}
+                                                        {{ image.product_suggested_name }}
+                                                        {% elif image.filename %}
+                                                        {{ image.filename }}
+                                                        {% else %}
+                                                        Image #{{ loop.index }}
+                                                        {% endif %}
+                                                    </h6>
+                                                    
+                                                    {% if image.alt_text %}
+                                                    <p class="card-text mb-1">
+                                                        <strong>Alt text:</strong> 
+                                                        <span class="text-muted">{{ image.alt_text|truncate(50) }}</span>
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if image.product_category %}
+                                                    <p class="card-text mb-1">
+                                                        <strong>Category:</strong> 
+                                                        <span class="text-muted">{{ image.product_category }}</span>
+                                                    </p>
+                                                    {% endif %}
+                                                    
+                                                    {% if image.shopify_updated %}
+                                                    <div class="mt-2">
+                                                        <span class="badge bg-success">Shopify Updated</span>
+                                                    </div>
+                                                    {% endif %}
+                                                    
+                                                    {% if image.error_message %}
+                                                    <div class="alert alert-danger mt-2 p-2" style="font-size: 80%;">
+                                                        {{ image.error_message|truncate(100) }}
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="card-footer d-flex justify-content-center">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                            data-bs-toggle="modal" data-bs-target="#imageModal-{{ image.id }}">
+                                                        View Details
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Modal for image details -->
+                                            <div class="modal fade" id="imageModal-{{ image.id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-lg">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">
+                                                                {% if image.product_suggested_name %}
+                                                                {{ image.product_suggested_name }}
+                                                                {% elif image.filename %}
+                                                                {{ image.filename }}
+                                                                {% else %}
+                                                                Image #{{ loop.index }}
+                                                                {% endif %}
+                                                            </h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="row">
+                                                                <div class="col-md-6">
+                                                                    {% if image.url %}
+                                                                    <img src="{{ image.url }}" alt="{{ image.alt_text or 'Product image' }}" 
+                                                                         class="img-fluid mb-3">
+                                                                    {% elif image.file_path %}
+                                                                    <img src="/path/to/image/{{ image.filename }}" alt="{{ image.alt_text or 'Product image' }}" 
+                                                                         class="img-fluid mb-3">
+                                                                    {% else %}
+                                                                    <div class="bg-light d-flex justify-content-center align-items-center" style="height: 300px;">
+                                                                        <span class="text-muted">No preview</span>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if image.shopify_product_id %}
+                                                                    <div class="mb-2">
+                                                                        <strong>Shopify Product ID:</strong> {{ image.shopify_product_id }}
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if image.shopify_image_id %}
+                                                                    <div class="mb-2">
+                                                                        <strong>Shopify Image ID:</strong> {{ image.shopify_image_id }}
+                                                                    </div>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label"><strong>Alt Text</strong></label>
+                                                                        <textarea class="form-control" rows="2" readonly>{{ image.alt_text }}</textarea>
+                                                                    </div>
+                                                                    
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label"><strong>Caption</strong></label>
+                                                                        <textarea class="form-control" rows="4" readonly>{{ image.caption }}</textarea>
+                                                                    </div>
+                                                                    
+                                                                    {% if image.tags %}
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label"><strong>Tags</strong></label>
+                                                                        <div>
+                                                                            {% for tag in image.tags.split(',') %}
+                                                                            <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
+                                                                            {% endfor %}
+                                                                        </div>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if image.seo_keywords %}
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label"><strong>SEO Keywords</strong></label>
+                                                                        <div>
+                                                                            {% for keyword in image.seo_keywords.split(',') %}
+                                                                            <span class="badge bg-info text-dark me-1">{{ keyword.strip() }}</span>
+                                                                            {% endfor %}
+                                                                        </div>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if image.detailed_description %}
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label"><strong>Detailed Description</strong></label>
+                                                                        <textarea class="form-control" rows="6" readonly>{{ image.detailed_description }}</textarea>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {% if image.error_message %}
+                                                            <div class="alert alert-danger mt-3">
+                                                                <strong>Error:</strong> {{ image.error_message }}
+                                                            </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Data Tab -->
+                                <div class="tab-pane fade" id="data" role="tabpanel" aria-labelledby="data-tab">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Image</th>
+                                                    <th>Alt Text</th>
+                                                    <th>Tags</th>
+                                                    <th>Category</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for image in images %}
+                                                <tr>
+                                                    <td class="align-middle">
+                                                        <div style="width: 60px; height: 60px; overflow: hidden;">
+                                                            {% if image.url %}
+                                                            <img src="{{ image.url }}" alt="{{ image.alt_text or 'Product image' }}" 
+                                                                 class="w-100 h-100" style="object-fit: cover;">
+                                                            {% elif image.file_path %}
+                                                            <img src="/path/to/image/{{ image.filename }}" alt="{{ image.alt_text or 'Product image' }}" 
+                                                                 class="w-100 h-100" style="object-fit: cover;">
+                                                            {% else %}
+                                                            <div class="bg-light d-flex justify-content-center align-items-center w-100 h-100">
+                                                                <span class="text-muted small">No image</span>
+                                                            </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
+                                                    <td class="align-middle">{{ image.alt_text|truncate(50) if image.alt_text else '-' }}</td>
+                                                    <td class="align-middle">{{ image.tags|truncate(30) if image.tags else '-' }}</td>
+                                                    <td class="align-middle">{{ image.product_category if image.product_category else '-' }}</td>
+                                                    <td class="align-middle">
+                                                        <span class="badge 
+                                                            {% if image.status == 'completed' %}bg-success
+                                                            {% elif image.status == 'pending' %}bg-primary
+                                                            {% elif image.status == 'processing' %}bg-info
+                                                            {% elif image.status == 'failed' %}bg-danger
+                                                            {% else %}bg-secondary{% endif %}
+                                                        ">
+                                                            {{ image.status|capitalize }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- Shopify Updates Tab -->
+                                {% if batch.export_format == 'shopify_update' %}
+                                <div class="tab-pane fade" id="shopify" role="tabpanel" aria-labelledby="shopify-tab">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Image</th>
+                                                    <th>Product ID</th>
+                                                    <th>Image ID</th>
+                                                    <th>Alt Text</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for image in images if image.shopify_product_id %}
+                                                <tr>
+                                                    <td class="align-middle">
+                                                        <div style="width: a60px; height: 60px; overflow: hidden;">
+                                                            {% if image.url %}
+                                                            <img src="{{ image.url }}" alt="{{ image.alt_text or 'Product image' }}" 
+                                                                 class="w-100 h-100" style="object-fit: cover;">
+                                                            {% else %}
+                                                            <div class="bg-light d-flex justify-content-center align-items-center w-100 h-100">
+                                                                <span class="text-muted small">No image</span>
+                                                            </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
+                                                    <td class="align-middle">{{ image.shopify_product_id }}</td>
+                                                    <td class="align-middle">{{ image.shopify_image_id }}</td>
+                                                    <td class="align-middle">{{ image.alt_text|truncate(50) if image.alt_text else '-' }}</td>
+                                                    <td class="align-middle">
+                                                        {% if image.shopify_updated %}
+                                                        <span class="badge bg-success">Updated</span>
+                                                        {% else %}
+                                                        <span class="badge bg-secondary">Pending</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% else %}
+                                                <tr>
+                                                    <td colspan="5" class="text-center py-3">No Shopify updates</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="{{ url_for('main.image_caption_generator') }}" class="btn btn-secondary">
+                        Back to Generator
+                    </a>
+                    
+                    {% if batch.status == 'pending' or batch.status == 'ready_to_process' %}
+                    <a href="{{ url_for('main.process_image_batch', batch_id=batch.id) }}" class="btn btn-primary">
+                        Process Images
+                    </a>
+                    {% elif batch.status == 'processing' %}
+                    <a href="{{ url_for('main.image_caption_results', batch_id=batch.id) }}" class="btn btn-info">
+                        Refresh Status
+                    </a>
+                    {% elif batch.export_format == 'csv' and batch.export_path %}
+                    <a href="{{ url_for('main.download_image_captions', batch_id=batch.id) }}" class="btn btn-success">
+                        Download CSV
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

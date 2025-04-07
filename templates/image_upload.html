@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Images{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Upload Images for Captioning</h1>
+            
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Batch: {{ batch.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Upload images to be processed with AI caption generation.
+                        You can select multiple files at once.
+                    </p>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-4">
+                            <label for="images" class="form-label">Select Images</label>
+                            <input class="form-control form-control-lg" type="file" id="images" name="images" 
+                                multiple accept=".jpg,.jpeg,.png,.gif,.webp">
+                            <div class="form-text">
+                                Supported formats: JPG, JPEG, PNG, GIF, WEBP
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div id="preview-container" class="row g-3">
+                                <!-- Image previews will be inserted here -->
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.image_caption_generator') }}" class="btn btn-secondary">Back</a>
+                            <button type="submit" class="btn btn-primary">Upload and Process</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('images');
+    const previewContainer = document.getElementById('preview-container');
+    
+    fileInput.addEventListener('change', function() {
+        // Clear the preview container
+        previewContainer.innerHTML = '';
+        
+        // Get the selected files
+        const files = this.files;
+        
+        // If no files selected, exit
+        if (!files || files.length === 0) {
+            return;
+        }
+        
+        // Show a message with the number of selected files
+        const fileCountText = document.createElement('p');
+        fileCountText.classList.add('col-12', 'fw-bold');
+        fileCountText.textContent = `${files.length} image${files.length !== 1 ? 's' : ''} selected`;
+        previewContainer.appendChild(fileCountText);
+        
+        // Generate preview for each file (up to a reasonable limit)
+        const maxPreviews = Math.min(files.length, 12);
+        
+        for (let i = 0; i < maxPreviews; i++) {
+            const file = files[i];
+            
+            // Only process image files
+            if (!file.type.match('image.*')) {
+                continue;
+            }
+            
+            // Create a container for the preview
+            const previewCol = document.createElement('div');
+            previewCol.classList.add('col-md-2', 'col-sm-3', 'col-4');
+            
+            // Create an image element
+            const img = document.createElement('img');
+            img.classList.add('img-thumbnail', 'w-100', 'mb-1');
+            img.style.aspectRatio = '1/1';  // Force square aspect ratio
+            img.style.objectFit = 'cover';  // Ensure image covers the container
+            img.file = file;
+            
+            // Create filename label
+            const filenameLabel = document.createElement('p');
+            filenameLabel.classList.add('small', 'text-truncate');
+            filenameLabel.textContent = file.name;
+            
+            // Add elements to the container
+            previewCol.appendChild(img);
+            previewCol.appendChild(filenameLabel);
+            previewContainer.appendChild(previewCol);
+            
+            // Read the file and set the image source
+            const reader = new FileReader();
+            reader.onload = (function(aImg) { 
+                return function(e) { 
+                    aImg.src = e.target.result; 
+                }; 
+            })(img);
+            reader.readAsDataURL(file);
+        }
+        
+        // If there are more files than previews, show a message
+        if (files.length > maxPreviews) {
+            const moreFilesText = document.createElement('p');
+            moreFilesText.classList.add('col-12', 'text-muted', 'small');
+            moreFilesText.textContent = `+ ${files.length - maxPreviews} more image${files.length - maxPreviews !== 1 ? 's' : ''}`;
+            previewContainer.appendChild(moreFilesText);
+        }
+    });
+});
+</script>
+{% endblock %}

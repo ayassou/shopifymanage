@@ -306,3 +306,134 @@ class ShopifyClient:
             dict: Response from the Shopify API
         """
         return self._make_request('DELETE', f'pages/{page_id}.json')
+        
+    # Product Image API Methods
+    
+    def get_product_images(self, product_id=None, collection_id=None, limit=50):
+        """
+        Get images from products in the Shopify store
+        
+        Args:
+            product_id (str, optional): ID of a specific product to get images from
+            collection_id (str, optional): ID of a collection to get images from
+            limit (int): Maximum number of product results to retrieve
+            
+        Returns:
+            list: List of product images with product ID reference
+        """
+        images = []
+        
+        try:
+            # If a specific product ID is provided
+            if product_id:
+                product_data = self.get_product(product_id)
+                if 'product' in product_data and 'images' in product_data['product']:
+                    for image in product_data['product']['images']:
+                        image['product_id'] = product_id
+                        images.append(image)
+                return images
+                
+            # If a collection ID is provided
+            if collection_id:
+                products_response = self._make_request('GET', f'collections/{collection_id}/products.json?limit={limit}')
+                products = products_response.get('products', [])
+            else:
+                # Otherwise get all products
+                products_response = self._make_request('GET', f'products.json?limit={limit}')
+                products = products_response.get('products', [])
+            
+            # Extract images from each product
+            for product in products:
+                product_id = product['id']
+                for image in product.get('images', []):
+                    image['product_id'] = product_id
+                    images.append(image)
+                    
+            return images
+            
+        except Exception as e:
+            logger.error(f"Error getting product images: {str(e)}")
+            return []
+    
+    def get_product_image(self, product_id, image_id):
+        """
+        Get a specific product image
+        
+        Args:
+            product_id (str): ID of the product
+            image_id (str): ID of the image
+            
+        Returns:
+            dict: Image data
+        """
+        return self._make_request('GET', f'products/{product_id}/images/{image_id}.json')
+    
+    def update_product_image(self, product_id, image_id, alt_text=None, metadata=None):
+        """
+        Update a product image, primarily for alt text and metadata
+        
+        Args:
+            product_id (str): ID of the product
+            image_id (str): ID of the image to update
+            alt_text (str, optional): New alt text for the image
+            metadata (dict, optional): Metadata to add to the image
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        image_data = {
+            "image": {}
+        }
+        
+        if alt_text is not None:
+            image_data["image"]["alt"] = alt_text
+            
+        if metadata is not None:
+            image_data["image"]["metafields"] = metadata
+            
+        return self._make_request('PUT', f'products/{product_id}/images/{image_id}.json', data=image_data)
+    
+    def upload_product_image(self, product_id, image_url=None, image_base64=None, alt_text=None, position=1):
+        """
+        Upload a new image to a product
+        
+        Args:
+            product_id (str): ID of the product
+            image_url (str, optional): URL of the image to upload
+            image_base64 (str, optional): Base64-encoded image data
+            alt_text (str, optional): Alt text for the image
+            position (int): Position of the image in the product gallery
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        image_data = {
+            "image": {
+                "position": position
+            }
+        }
+        
+        if alt_text is not None:
+            image_data["image"]["alt"] = alt_text
+            
+        if image_url is not None:
+            image_data["image"]["src"] = image_url
+        elif image_base64 is not None:
+            image_data["image"]["attachment"] = image_base64
+        else:
+            raise ValueError("Either image_url or image_base64 must be provided")
+            
+        return self._make_request('POST', f'products/{product_id}/images.json', data=image_data)
+        
+    def delete_product_image(self, product_id, image_id):
+        """
+        Delete a product image
+        
+        Args:
+            product_id (str): ID of the product
+            image_id (str): ID of the image to delete
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        return self._make_request('DELETE', f'products/{product_id}/images/{image_id}.json')

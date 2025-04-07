@@ -7,12 +7,12 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_file, Response
 from werkzeug.utils import secure_filename
 import pandas as pd
-from forms import UploadForm, ShopifySettingsForm, AISettingsForm, AIGeneratorForm, BlogPostGeneratorForm, PageGeneratorForm
+from forms import UploadForm, ShopifySettingsForm, AISettingsForm, AIGeneratorForm, BlogPostGeneratorForm, PageGeneratorForm, ImageCaptionGeneratorForm
 from data_processor import process_data, validate_data
 from shopify_client import ShopifyClient
 from ai_service import AIService
 from web_scraper import ProductScraper
-from models import db, ShopifySettings, AISettings, UploadHistory, ProductUploadResult, BlogPost, PageContent
+from models import db, ShopifySettings, AISettings, UploadHistory, ProductUploadResult, BlogPost, PageContent, ImageBatch, ImageItem
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -1005,3 +1005,395 @@ def regenerate_page(page_id=None):
     # Redirect to the generator page
     flash('Please adjust your parameters and generate a new page.', 'info')
     return redirect(url_for('main.page_generator'))
+
+# Image Caption Generator Routes
+@app.route('/image-captions/generator', methods=['GET', 'POST'])
+def image_caption_generator():
+    """Route for the Image Caption Generator form"""
+    # Check if AI settings exist in the database
+    active_ai_settings = AISettings.query.filter_by(is_active=True).first()
+    
+    # Check if Shopify settings exist for Shopify integration options
+    has_shopify_settings = ShopifySettings.query.filter_by(is_active=True).first() is not None
+    
+    form = ImageCaptionGeneratorForm()
+    
+    if form.validate_on_submit():
+        if not active_ai_settings:
+            flash('Please configure your AI API settings first.', 'warning')
+            return redirect(url_for('main.ai_settings'))
+        
+        try:
+            # Create a new batch record
+            batch = ImageBatch(
+                name=form.batch_name.data,
+                source_type=form.source_type.data,
+                source_detail=form.source_detail.data if form.source_detail.data else None,
+                status='pending',
+                export_format=form.export_format.data
+            )
+            
+            # If Shopify is involved, add Shopify settings reference
+            if form.source_type.data == 'shopify' or form.export_format.data == 'shopify_update':
+                shopify_settings = ShopifySettings.query.filter_by(is_active=True).first()
+                if not shopify_settings:
+                    flash('Shopify settings are required for this operation.', 'warning')
+                    return render_template('image_caption_generator.html', form=form, 
+                                          ai_settings=active_ai_settings,
+                                          has_shopify_settings=has_shopify_settings)
+                batch.settings_id = shopify_settings.id
+            
+            db.session.add(batch)
+            db.session.commit()
+            
+            # Process based on source type
+            if form.source_type.data == 'url':
+                # Process URL input - can be a single URL or multiple URLs
+                urls = form.source_detail.data.strip().split('\n')
+                urls = [url.strip() for url in urls if url.strip()]
+                
+                if not urls:
+                    flash('Please provide at least one valid URL.', 'warning')
+                    db.session.delete(batch)
+                    db.session.commit()
+                    return render_template('image_caption_generator.html', form=form, 
+                                          ai_settings=active_ai_settings,
+                                          has_shopify_settings=has_shopify_settings)
+                
+                batch.total_count = len(urls)
+                db.session.commit()
+                
+                # Create image items for each URL
+                for url in urls:
+                    image_item = ImageItem(
+                        batch_id=batch.id,
+                        url=url,
+                        status='pending'
+                    )
+                    db.session.add(image_item)
+                
+                db.session.commit()
+                
+            elif form.source_type.data == 'upload':
+                # Process file upload - implemented in separate route
+                session['batch_id'] = batch.id
+                return redirect(url_for('main.upload_images'))
+                
+            elif form.source_type.data == 'shopify':
+                # Process Shopify product images
+                shopify_settings = ShopifySettings.query.filter_by(is_active=True).first()
+                shopify_client = ShopifyClient(
+                    shopify_settings.api_key,
+                    shopify_settings.password,
+                    shopify_settings.store_url,
+                    shopify_settings.api_version
+                )
+                
+                # Fetch product images from Shopify - this would be implemented in the ShopifyClient
+                product_images = shopify_client.get_product_images(
+                    product_id=form.shopify_product_id.data if form.shopify_product_id.data else None,
+                    collection_id=form.shopify_collection_id.data if form.shopify_collection_id.data else None,
+                    limit=form.shopify_limit.data if form.shopify_limit.data else 50
+                )
+                
+                if not product_images:
+                    flash('No images found in the specified Shopify products.', 'warning')
+                    db.session.delete(batch)
+                    db.session.commit()
+                    return render_template('image_caption_generator.html', form=form, 
+                                          ai_settings=active_ai_settings,
+                                          has_shopify_settings=has_shopify_settings)
+                
+                batch.total_count = len(product_images)
+                db.session.commit()
+                
+                # Create image items for each Shopify image
+                for image in product_images:
+                    image_item = ImageItem(
+                        batch_id=batch.id,
+                        url=image['src'],
+                        shopify_product_id=image['product_id'],
+                        shopify_image_id=image['id'],
+                        status='pending'
+                    )
+                    db.session.add(image_item)
+                
+                db.session.commit()
+            
+            # Update batch status
+            batch.status = 'ready_to_process'
+            db.session.commit()
+            
+            # Redirect to processing page
+            return redirect(url_for('main.process_image_batch', batch_id=batch.id))
+            
+        except Exception as e:
+            logger.error(f"Error setting up image batch: {str(e)}")
+            flash(f'Error: {str(e)}', 'danger')
+            return render_template('image_caption_generator.html', form=form, 
+                                  ai_settings=active_ai_settings,
+                                  has_shopify_settings=has_shopify_settings)
+    
+    return render_template('image_caption_generator.html', form=form, 
+                          ai_settings=active_ai_settings,
+                          has_shopify_settings=has_shopify_settings)
+
+@app.route('/image-captions/upload', methods=['GET', 'POST'])
+def upload_images():
+    """Route for uploading images for caption generation"""
+    if 'batch_id' not in session:
+        flash('No active batch. Please start a new batch.', 'warning')
+        return redirect(url_for('main.image_caption_generator'))
+    
+    batch_id = session['batch_id']
+    batch = ImageBatch.query.get_or_404(batch_id)
+    
+    if request.method == 'POST':
+        if 'images' not in request.files:
+            flash('No files selected.', 'warning')
+            return redirect(request.url)
+        
+        files = request.files.getlist('images')
+        if not files or files[0].filename == '':
+            flash('No files selected.', 'warning')
+            return redirect(request.url)
+        
+        # Set up the upload folder
+        upload_folder = os.path.join(UPLOAD_FOLDER, f'image_batch_{batch_id}')
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        # Process each uploaded file
+        file_count = 0
+        for file in files:
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(upload_folder, filename)
+                file.save(file_path)
+                
+                # Create image item record
+                image_item = ImageItem(
+                    batch_id=batch_id,
+                    filename=filename,
+                    file_path=file_path,
+                    mimetype=file.content_type,
+                    filesize=os.path.getsize(file_path),
+                    status='pending'
+                )
+                db.session.add(image_item)
+                file_count += 1
+        
+        # Update batch information
+        batch.total_count = file_count
+        batch.status = 'ready_to_process'
+        db.session.commit()
+        
+        # Clean up session
+        session.pop('batch_id', None)
+        
+        flash(f'{file_count} images uploaded successfully.', 'success')
+        return redirect(url_for('main.process_image_batch', batch_id=batch_id))
+    
+    return render_template('image_upload.html', batch=batch)
+
+@app.route('/image-captions/process/<int:batch_id>')
+def process_image_batch(batch_id):
+    """Route for processing an image batch"""
+    # Get the batch record
+    batch = ImageBatch.query.get_or_404(batch_id)
+    
+    # Get AI settings
+    active_ai_settings = AISettings.query.filter_by(is_active=True).first()
+    if not active_ai_settings:
+        flash('Please configure your AI API settings first.', 'warning')
+        return redirect(url_for('main.ai_settings'))
+    
+    # Initialize AI service
+    ai_service = AIService(api_key=active_ai_settings.api_key, 
+                         api_provider=active_ai_settings.api_provider)
+    
+    # Get unprocessed images
+    pending_images = ImageItem.query.filter_by(batch_id=batch_id, status='pending').all()
+    
+    if not pending_images:
+        flash('No pending images found in this batch.', 'info')
+        return redirect(url_for('main.image_caption_results', batch_id=batch_id))
+    
+    # Update batch status
+    batch.status = 'processing'
+    db.session.commit()
+    
+    try:
+        # Process each image
+        for image in pending_images:
+            # Set image status to processing
+            image.status = 'processing'
+            db.session.commit()
+            
+            try:
+                # Determine the image source to use
+                image_source = None
+                if image.file_path and os.path.exists(image.file_path):
+                    # Use local file path
+                    image_source = {'type': 'file', 'path': image.file_path}
+                elif image.url:
+                    # Use URL
+                    image_source = {'type': 'url', 'url': image.url}
+                
+                if not image_source:
+                    raise ValueError("No valid image source found")
+                
+                # Generate captions using AI service
+                caption_data = ai_service.generate_image_captions(
+                    image_source=image_source,
+                    include_alt_text=True,
+                    include_seo=True,
+                    include_tags=True,
+                    include_product_suggestions=True
+                )
+                
+                # Update image with generated captions
+                image.alt_text = caption_data.get('alt_text')
+                image.caption = caption_data.get('caption')
+                image.tags = caption_data.get('tags')
+                image.detailed_description = caption_data.get('detailed_description')
+                image.seo_keywords = caption_data.get('seo_keywords')
+                image.seo_title = caption_data.get('seo_title')
+                image.product_suggested_name = caption_data.get('product_name')
+                image.product_category = caption_data.get('product_category')
+                image.status = 'completed'
+                image.processed_at = datetime.utcnow()
+                
+                # Update batch counter
+                batch.processed_count += 1
+                
+                # If this is a Shopify update and we have Shopify details
+                if batch.export_format == 'shopify_update' and image.shopify_product_id and image.shopify_image_id:
+                    # Get Shopify settings
+                    shopify_settings = ShopifySettings.query.get(batch.settings_id)
+                    if shopify_settings:
+                        # Initialize Shopify client
+                        shopify_client = ShopifyClient(
+                            shopify_settings.api_key,
+                            shopify_settings.password, 
+                            shopify_settings.store_url,
+                            shopify_settings.api_version
+                        )
+                        
+                        # Update image in Shopify
+                        update_result = shopify_client.update_product_image(
+                            product_id=image.shopify_product_id,
+                            image_id=image.shopify_image_id,
+                            alt_text=image.alt_text
+                        )
+                        
+                        if update_result:
+                            image.shopify_updated = True
+                
+                db.session.commit()
+                
+            except Exception as e:
+                logger.error(f"Error processing image {image.id}: {str(e)}")
+                image.status = 'failed'
+                image.error_message = str(e)
+                db.session.commit()
+        
+        # Update batch status
+        if batch.processed_count == batch.total_count:
+            batch.status = 'completed'
+        else:
+            # There might have been failures
+            failed_count = ImageItem.query.filter_by(batch_id=batch_id, status='failed').count()
+            if failed_count > 0:
+                batch.status = 'completed_with_errors'
+            else:
+                batch.status = 'partially_completed'
+        
+        db.session.commit()
+        
+        # If export format is CSV, generate and save the export file
+        if batch.export_format == 'csv':
+            export_path = os.path.join(UPLOAD_FOLDER, f'image_captions_batch_{batch_id}.csv')
+            # Create a pandas DataFrame from the image items
+            # Include all relevant fields for the CSV export
+            # Save the CSV file
+            # Update the batch with the export path
+            batch.export_path = export_path
+            db.session.commit()
+        
+        return redirect(url_for('main.image_caption_results', batch_id=batch_id))
+        
+    except Exception as e:
+        logger.error(f"Error processing batch {batch_id}: {str(e)}")
+        batch.status = 'failed'
+        db.session.commit()
+        flash(f'Error processing batch: {str(e)}', 'danger')
+        return redirect(url_for('main.image_caption_generator'))
+
+@app.route('/image-captions/results/<int:batch_id>')
+def image_caption_results(batch_id):
+    """Route for viewing the results of an image caption batch"""
+    # Get the batch record
+    batch = ImageBatch.query.get_or_404(batch_id)
+    
+    # Get the images associated with this batch
+    images = ImageItem.query.filter_by(batch_id=batch_id).all()
+    
+    # Get statistics
+    stats = {
+        'total': batch.total_count,
+        'processed': batch.processed_count,
+        'success': ImageItem.query.filter_by(batch_id=batch_id, status='completed').count(),
+        'failed': ImageItem.query.filter_by(batch_id=batch_id, status='failed').count()
+    }
+    
+    return render_template('image_caption_results.html', batch=batch, images=images, stats=stats)
+
+@app.route('/image-captions/download/<int:batch_id>')
+def download_image_captions(batch_id):
+    """Route for downloading image captions as a CSV file"""
+    # Get the batch record
+    batch = ImageBatch.query.get_or_404(batch_id)
+    
+    if batch.export_format != 'csv' or not batch.export_path or not os.path.exists(batch.export_path):
+        # If the export hasn't been created yet, generate it on-the-fly
+        images = ImageItem.query.filter_by(batch_id=batch_id).all()
+        
+        # Convert to a list of dictionaries for DataFrame
+        image_data = []
+        for img in images:
+            image_data.append({
+                'filename': img.filename,
+                'url': img.url,
+                'alt_text': img.alt_text,
+                'caption': img.caption,
+                'tags': img.tags,
+                'detailed_description': img.detailed_description,
+                'seo_keywords': img.seo_keywords,
+                'seo_title': img.seo_title,
+                'product_suggested_name': img.product_suggested_name,
+                'product_category': img.product_category,
+                'status': img.status,
+                'shopify_product_id': img.shopify_product_id,
+                'shopify_image_id': img.shopify_image_id,
+                'shopify_updated': img.shopify_updated
+            })
+        
+        # Create a pandas DataFrame
+        import pandas as pd
+        df = pd.DataFrame(image_data)
+        
+        # Create a temporary CSV file
+        export_path = os.path.join(UPLOAD_FOLDER, f'image_captions_batch_{batch_id}.csv')
+        df.to_csv(export_path, index=False)
+        
+        # Update the batch with the export path
+        batch.export_path = export_path
+        db.session.commit()
+    
+    # Send the file
+    return send_file(
+        batch.export_path,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f'image_captions_batch_{batch_id}.csv'
+    )

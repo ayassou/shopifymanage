@@ -938,3 +938,415 @@ class AIService:
             logger.error(f"Failed to generate blog image: {str(e)}")
             # Return None rather than failing the whole process
             return None
+            
+    def analyze_image_for_caption(self, image_data, caption_style="descriptive", max_alt_length=125):
+        """
+        Analyze an image and generate appropriate captions and alt text.
+        
+        Args:
+            image_data (bytes or str): Image data as bytes or base64-encoded string or URL
+            caption_style (str): Style of caption to generate ('descriptive', 'seo', 'minimal', 'technical')
+            max_alt_length (int): Maximum length for alt text
+            
+        Returns:
+            dict: Dictionary containing generated caption data
+        """
+        try:
+            logger.debug("Analyzing image for caption generation")
+            
+            # Determine how to process the image data
+            if isinstance(image_data, str) and (image_data.startswith('http://') or image_data.startswith('https://')):
+                # It's a URL, we'll pass it directly to the vision model
+                image_for_analysis = image_data
+            elif isinstance(image_data, bytes):
+                # It's binary data, encode to base64
+                base64_image = base64.b64encode(image_data).decode('utf-8')
+                image_for_analysis = f"data:image/jpeg;base64,{base64_image}"
+            elif isinstance(image_data, str) and image_data.startswith('data:image'):
+                # It's already base64 encoded with data URL
+                image_for_analysis = image_data
+            else:
+                # Try to convert from base64 string without prefix
+                try:
+                    image_for_analysis = f"data:image/jpeg;base64,{image_data}"
+                except:
+                    logger.error("Invalid image data format provided")
+                    return None
+            
+            # Create a prompt based on the requested caption style
+            style_prompts = {
+                "descriptive": "Analyze this product image in detail. Describe what you see including color, style, design, materials, and any notable features. Focus on being descriptive and accurate.",
+                "seo": "Analyze this product image for e-commerce. Create SEO-friendly descriptions that include likely search terms. Focus on features and benefits that shoppers would search for.",
+                "minimal": "Create a concise, minimal description of this product image. Focus on only the most essential details in as few words as possible.",
+                "technical": "Analyze this product image focusing on technical specifications, materials, dimensions, and functional features. Be precise and detail-oriented."
+            }
+            
+            prompt = style_prompts.get(caption_style, style_prompts["descriptive"])
+            
+            # Add instructions for output format
+            system_prompt = f"""
+            You are an e-commerce image analysis expert specializing in product photography. 
+            {prompt}
+            
+            Format your response as a JSON object with the following structure:
+            {{
+                "alt_text": "A short, descriptive alt text under {max_alt_length} characters",
+                "caption": "A longer, more detailed caption suitable for product descriptions",
+                "tags": ["tag1", "tag2", "tag3"], 
+                "product_title": "Suggested product title based on the image",
+                "product_category": "Suggested product category or type",
+                "seo_keywords": ["keyword1", "keyword2", "keyword3"],
+                "detailed_description": "A paragraph with detailed product description"
+            }}
+            
+            Ensure the alt_text is under {max_alt_length} characters and follows accessibility best practices.
+            """
+            
+            # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+            # do not change this unless explicitly requested by the user
+            if self.api_provider == "openai":
+                # Use GPT-4o with vision for image analysis
+                response = self.client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {
+                            "role": "user", 
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "Please analyze this product image and provide the information in the specified JSON format."
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": image_for_analysis}
+                                }
+                            ]
+                        }
+                    ],
+                    response_format={"type": "json_object"},
+                    max_tokens=1000
+                )
+                
+                result = json.loads(response.choices[0].message.content)
+                logger.debug("Successfully generated image caption data")
+                return result
+                
+            elif self.api_provider == "x.ai":
+                # Use Grok-2-vision for image analysis
+                response = self.client.chat.completions.create(
+                    model="grok-2-vision-1212",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {
+                            "role": "user", 
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "Please analyze this product image and provide the information in the specified JSON format."
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": image_for_analysis}
+                                }
+                            ]
+                        }
+                    ],
+                    response_format={"type": "json_object"},
+                    max_tokens=1000
+                )
+                
+                result = json.loads(response.choices[0].message.content)
+                logger.debug("Successfully generated image caption data")
+                return result
+                
+        except Exception as e:
+            logger.error(f"Error analyzing image for caption: {str(e)}")
+            return None
+            
+    def search_images(self, query, count=5):
+        """
+        Search for images based on a query string.
+        
+        Args:
+            query (str): Search query for images
+            count (int): Number of images to retrieve
+            
+        Returns:
+            list: List of image URLs
+        """
+        # This is a placeholder - in a real implementation, you would integrate
+        # with a search API like Google Custom Search, Bing Image Search, etc.
+        logger.warning("Image search functionality requires integration with a search API")
+        # For demo purposes, return a message
+        return []
+        
+    def download_image(self, url):
+        """
+        Download an image from a URL.
+        
+        Args:
+            url (str): URL of the image
+            
+        Returns:
+            bytes: Image data as bytes
+        """
+        try:
+            logger.debug(f"Downloading image from URL: {url}")
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            logger.debug(f"Successfully downloaded image ({len(response.content)} bytes)")
+            return response.content
+        except Exception as e:
+            logger.error(f"Error downloading image from {url}: {e}")
+            return None
+            
+    def process_image_batch(self, images_data, batch_name, caption_style="descriptive", max_alt_length=125, output_format="csv"):
+        """
+        Process a batch of images to generate captions and alt text.
+        
+        Args:
+            images_data (list): List of image data (URLs, paths, or binary data)
+            batch_name (str): Name for this batch of images
+            caption_style (str): Style of captions to generate
+            max_alt_length (int): Maximum length for alt text
+            output_format (str): Output format (csv, shopify_update, library)
+            
+        Returns:
+            dict: Processing results including generated data
+        """
+        logger.debug(f"Processing image batch: {batch_name}, {len(images_data)} images")
+        results = []
+        
+        for i, image in enumerate(images_data):
+            # Log progress
+            logger.debug(f"Processing image {i+1}/{len(images_data)}")
+            
+            # Determine if this is a URL, path, or binary data
+            if isinstance(image, str) and (image.startswith('http://') or image.startswith('https://')):
+                # It's a URL
+                image_url = image
+                image_data = self.download_image(image_url)
+                filename = os.path.basename(urlparse(image_url).path)
+            elif isinstance(image, str) and os.path.exists(image):
+                # It's a file path
+                filename = os.path.basename(image)
+                with open(image, 'rb') as f:
+                    image_data = f.read()
+                image_url = None
+            elif isinstance(image, bytes):
+                # It's binary data
+                image_data = image
+                filename = f"image-{i+1}.jpg"
+                image_url = None
+            else:
+                logger.error(f"Unsupported image data format: {type(image)}")
+                continue
+                
+            # Skip if image couldn't be processed
+            if not image_data:
+                logger.warning(f"Could not process image: {image}")
+                continue
+                
+            # Generate captions
+            caption_data = self.analyze_image_for_caption(image_data, caption_style, max_alt_length)
+            
+            if caption_data:
+                result = {
+                    "filename": filename,
+                    "url": image_url,
+                    "caption_data": caption_data,
+                    "status": "completed"
+                }
+            else:
+                result = {
+                    "filename": filename,
+                    "url": image_url,
+                    "status": "failed",
+                    "error_message": "Failed to generate caption data"
+                }
+                
+            results.append(result)
+            
+        # Format the results based on the requested output format
+        if output_format == "csv":
+            return self.format_captions_for_csv(results)
+        elif output_format == "shopify_update":
+            return results  # Raw format for Shopify updates
+        else:
+            return results  # Default format
+    
+    def format_captions_for_csv(self, results):
+        """
+        Format image caption results for CSV export.
+        
+        Args:
+            results (list): List of image processing results
+            
+        Returns:
+            dict: CSV-compatible data structure
+        """
+        logger.debug("Formatting caption results for CSV")
+        csv_data = {
+            "Handle": [],
+            "Image Src": [],
+            "Image Position": [],
+            "Image Alt Text": [],
+            "Variant SKU": [],
+            "Metafields: alt_text": [],
+            "Tags": []
+        }
+        
+        for i, result in enumerate(results):
+            if result["status"] == "completed":
+                filename = result["filename"] or f"product-image-{i+1}"
+                handle = filename.split('.')[0].lower().replace(' ', '-')
+                
+                csv_data["Handle"].append(handle)
+                csv_data["Image Src"].append(result["url"] or "")
+                csv_data["Image Position"].append(i + 1)
+                csv_data["Image Alt Text"].append(result["caption_data"]["alt_text"])
+                csv_data["Variant SKU"].append("")  # Leave blank for default
+                csv_data["Metafields: alt_text"].append(result["caption_data"]["alt_text"])
+                
+                # Join tags with comma
+                if "tags" in result["caption_data"]:
+                    tags = ", ".join(result["caption_data"]["tags"])
+                    csv_data["Tags"].append(tags)
+                else:
+                    csv_data["Tags"].append("")
+        
+        logger.debug(f"CSV formatting complete, {len(csv_data['Handle'])} processed")
+        return csv_data
+        
+    def generate_image_captions(self, image_source, include_alt_text=True, include_seo=True, 
+                              include_tags=True, include_product_suggestions=True):
+        """
+        Generate captions and descriptive text for product images using AI vision models.
+        
+        Args:
+            image_source (dict): Image source information with type ('file' or 'url') and path/url
+            include_alt_text (bool): Generate accessibility-focused alt text
+            include_seo (bool): Generate SEO keywords and metadata
+            include_tags (bool): Generate categorization tags
+            include_product_suggestions (bool): Suggest product name and category
+            
+        Returns:
+            dict: Generated captions and metadata
+        """
+        try:
+            logger.debug(f"Generating captions for image: {image_source}")
+            
+            # Prepare the image for processing - either from file or URL
+            image_data = None
+            if image_source['type'] == 'file':
+                # Load image from file path
+                with open(image_source['path'], 'rb') as img_file:
+                    image_data = base64.b64encode(img_file.read()).decode('utf-8')
+            elif image_source['type'] == 'url':
+                # Download image from URL
+                response = requests.get(image_source['url'])
+                response.raise_for_status()
+                image_data = base64.b64encode(response.content).decode('utf-8')
+            else:
+                raise ValueError(f"Unsupported image source type: {image_source['type']}")
+            
+            if not image_data:
+                raise ValueError("Failed to load image data")
+            
+            # Construct the vision model prompt based on requested outputs
+            system_prompt = """
+            You are an expert product photographer and e-commerce specialist.
+            Analyze this product image and provide detailed, accurate captions and metadata.
+            Focus on describing what you see in detail, including:
+            - Visual characteristics (color, shape, pattern, texture)
+            - Product category and possible uses
+            - Notable features visible in the image
+            - Style, design elements, and brand aesthetic
+            
+            Avoid making claims about non-visible features (functionality, materials, dimensions)
+            unless they are clearly evident in the image.
+            """
+            
+            user_prompt = "Provide the following information about this product image:"
+            
+            if include_alt_text:
+                user_prompt += """
+                
+                - alt_text: A concise, SEO-friendly alt text (125 characters max) that accurately 
+                  describes the product for accessibility and search engines
+                """
+                
+            user_prompt += """
+            
+            - caption: A detailed, marketing-focused caption (1-2 paragraphs) describing the 
+              product's visual appearance, style, and key visible features
+            """
+            
+            if include_seo:
+                user_prompt += """
+                
+                - seo_keywords: 5-7 targeted keywords relevant to the product image, 
+                  comma-separated
+                - seo_title: An SEO-optimized product image title (60-70 characters max)
+                """
+                
+            if include_tags:
+                user_prompt += """
+                
+                - tags: An array of 5-10 specific tags for categorizing the product, 
+                  focusing on visible attributes
+                """
+                
+            if include_product_suggestions:
+                user_prompt += """
+                
+                - product_name: A suggested product name based on the image
+                - product_category: The most specific product category/subcategory this item belongs to
+                """
+                
+            user_prompt += """
+            
+            - detailed_description: A comprehensive visual description of the product 
+              for detailed product pages or catalog entries
+            
+            Return your analysis in JSON format with these exact fields.
+            """
+            
+            # Call vision API with appropriate model
+            if self.api_provider == "openai":
+                # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+                # do not change this unless explicitly requested by the user
+                response = self.client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": [
+                            {"type": "text", "text": user_prompt},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}}
+                        ]}
+                    ],
+                    response_format={"type": "json_object"}
+                )
+            elif self.api_provider == "x.ai":
+                # Use appropriate Grok model for vision
+                response = self.client.chat.completions.create(
+                    model="grok-2-vision-1212",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": [
+                            {"type": "text", "text": user_prompt},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}}
+                        ]}
+                    ]
+                )
+            
+            # Parse the response
+            result = json.loads(response.choices[0].message.content)
+            logger.debug("Successfully generated image captions")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to generate image captions: {str(e)}")
+            raise

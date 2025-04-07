@@ -167,3 +167,76 @@ class PageContent(db.Model):
     
     def __repr__(self):
         return f'<PageContent {self.title} - {self.page_type}>'
+
+
+class ImageBatch(db.Model):
+    """Model for storing image batch information for caption generation"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)  # User-defined batch name
+    source_type = db.Column(db.String(50), nullable=False)  # url, upload, shopify, search
+    source_detail = db.Column(db.Text, nullable=True)  # URL, search terms, or other source info
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Batch status tracking
+    status = db.Column(db.String(50), default='pending')  # pending, processing, completed, failed
+    processed_count = db.Column(db.Integer, default=0)
+    total_count = db.Column(db.Integer, default=0)
+    
+    # Export information
+    export_format = db.Column(db.String(50), nullable=True)  # csv, shopify_update, json
+    export_path = db.Column(db.String(1024), nullable=True)  # File path for exported data
+    
+    # Shopify integration
+    settings_id = db.Column(db.Integer, db.ForeignKey('shopify_settings.id'), nullable=True)
+    settings = db.relationship('ShopifySettings', backref=db.backref('image_batches', lazy=True))
+    
+    def __repr__(self):
+        return f'<ImageBatch {self.name} - {self.source_type}>'
+
+
+class ImageItem(db.Model):
+    """Model for storing individual image information and generated captions"""
+    id = db.Column(db.Integer, primary_key=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('image_batch.id'), nullable=False)
+    
+    # Image information
+    filename = db.Column(db.String(255), nullable=True)
+    url = db.Column(db.String(1024), nullable=True)
+    file_path = db.Column(db.String(1024), nullable=True)  # Local path for uploaded images
+    mimetype = db.Column(db.String(100), nullable=True)
+    filesize = db.Column(db.Integer, nullable=True)  # in bytes
+    
+    # Generated data
+    alt_text = db.Column(db.String(255), nullable=True)
+    caption = db.Column(db.Text, nullable=True)
+    tags = db.Column(db.Text, nullable=True)  # Comma-separated tags
+    detailed_description = db.Column(db.Text, nullable=True)  # Longer, more detailed description
+    
+    # SEO data
+    seo_keywords = db.Column(db.Text, nullable=True)
+    seo_title = db.Column(db.String(255), nullable=True)
+    
+    # Product association
+    product_suggested_name = db.Column(db.String(255), nullable=True)
+    product_category = db.Column(db.String(100), nullable=True)
+    
+    # Processing status
+    status = db.Column(db.String(50), default='pending')  # pending, processing, completed, failed
+    error_message = db.Column(db.Text, nullable=True)
+    
+    # Shopify specific information
+    shopify_product_id = db.Column(db.String(255), nullable=True)
+    shopify_image_id = db.Column(db.String(255), nullable=True)
+    shopify_updated = db.Column(db.Boolean, default=False)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    processed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationship with ImageBatch
+    batch = db.relationship('ImageBatch', backref=db.backref('images', lazy=True))
+    
+    def __repr__(self):
+        return f'<ImageItem {self.filename or self.url[:30]}>'
