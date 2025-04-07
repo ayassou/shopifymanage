@@ -62,12 +62,19 @@ class StoreAgent:
             db.session.commit()
             
         try:
+            # Generate store URL if not provided
+            store_name = store_params.get('store_name')
+            store_url = store_params.get('store_url')
+            if not store_url and store_name:
+                # Create a URL-friendly version of the store name for the myshopify domain
+                store_url = f"https://{store_name.lower().replace(' ', '-')}.myshopify.com"
+            
             # Create the store record
             store = StoreSetup(
                 user_id=user_id,
                 settings_id=settings_id,
-                store_name=store_params.get('store_name'),
-                store_url=store_params.get('store_url'),
+                store_name=store_name,
+                store_url=store_url,
                 niche=store_params.get('niche'),
                 logo_url=store_params.get('logo_url'),
                 theme_id=store_params.get('theme_id'),
