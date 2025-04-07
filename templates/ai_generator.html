@@ -144,14 +144,14 @@
                         </div>
                         
                         <!-- Common Settings -->
-                        <div class="card bg-light mb-4">
-                            <div class="card-header">
-                                <h6 class="mb-0">Additional Settings</h6>
+                        <div class="card bg-dark border-secondary mb-4">
+                            <div class="card-header bg-dark border-secondary">
+                                <h6 class="mb-0"><i class="fas fa-cog me-2"></i>Additional Settings</h6>
                             </div>
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="{{ form.variant_count.id }}" class="form-label">
+                                        <label for="{{ form.variant_count.id }}" class="form-label text-light">
                                             <i class="fas fa-sitemap me-2"></i>
                                             {{ form.variant_count.label }}
                                         </label>
@@ -159,10 +159,10 @@
                                         <div class="form-text">{{ form.variant_count.description }}</div>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label d-block">Options</label>
+                                        <label class="form-label text-light d-block">Options</label>
                                         <div class="form-check form-switch">
                                             {{ form.seo_optimize(class="form-check-input") }}
-                                            <label class="form-check-label" for="{{ form.seo_optimize.id }}">
+                                            <label class="form-check-label text-light" for="{{ form.seo_optimize.id }}">
                                                 <i class="fas fa-search me-2"></i>
                                                 {{ form.seo_optimize.label }}
                                             </label>
