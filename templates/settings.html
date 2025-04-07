@@ -16,6 +16,34 @@
                     Enter your Shopify API credentials to connect with your store. These credentials are used to create and update products via the Shopify API.
                 </p>
                 
+                {% if connection_status %}
+                    {% if connection_status.valid %}
+                        <div class="alert alert-success mb-4">
+                            <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i> Connected to Shopify</h5>
+                            <p class="mb-1">Successfully connected to your Shopify store:</p>
+                            <ul class="mb-0">
+                                <li><strong>Store Name:</strong> {{ connection_status.shop_name }}</li>
+                                {% if connection_status.plan_name %}
+                                <li><strong>Plan:</strong> {{ connection_status.plan_name }}</li>
+                                {% endif %}
+                                {% if connection_status.shop_email %}
+                                <li><strong>Email:</strong> {{ connection_status.shop_email }}</li>
+                                {% endif %}
+                            </ul>
+                            <p class="mt-2 mb-0">All your API calls will be processed in real-time on your Shopify store.</p>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger mb-4">
+                            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> Connection Error</h5>
+                            <p class="mb-0">Could not connect to Shopify with the provided credentials. Please check your API key, password, and store URL.</p>
+                            {% if connection_status.error %}
+                            <hr>
+                            <p class="mb-0"><strong>Error:</strong> {{ connection_status.error }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endif %}
+                
                 <form method="POST" action="{{ url_for('main.settings') }}">
                     {{ form.hidden_tag() }}
                     

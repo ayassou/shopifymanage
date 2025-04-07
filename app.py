@@ -46,26 +46,104 @@ def settings():
     # Get the active settings from the database if they exist
     active_settings = ShopifySettings.query.filter_by(is_active=True).first()
     
+    # For displaying current connection status
+    connection_status = None
+    
     if form.validate_on_submit():
-        # Create new settings or update existing ones
-        if active_settings:
-            active_settings.api_key = form.api_key.data
-            active_settings.password = form.password.data
-            active_settings.store_url = form.store_url.data
-            active_settings.api_version = form.api_version.data
-            active_settings.last_used_at = datetime.utcnow()
-            db.session.commit()
-        else:
-            new_settings = ShopifySettings(
+        # First test if the new API credentials work
+        try:
+            shopify_client = ShopifyClient(
                 api_key=form.api_key.data,
                 password=form.password.data,
                 store_url=form.store_url.data,
                 api_version=form.api_version.data
             )
-            db.session.add(new_settings)
-            db.session.commit()
+            
+            # Test the API credentials before saving
+            is_valid, response = shopify_client.test_connection()
+            
+            if is_valid:
+                # Create new settings or update existing ones
+                if active_settings:
+                    active_settings.api_key = form.api_key.data
+                    active_settings.password = form.password.data
+                    active_settings.store_url = form.store_url.data
+                    active_settings.api_version = form.api_version.data
+                    active_settings.last_used_at = datetime.utcnow()
+                    active_settings.is_valid = True
+                    active_settings.shop_name = response.get('shop', {}).get('name', '')
+                    db.session.commit()
+                else:
+                    new_settings = ShopifySettings(
+                        api_key=form.api_key.data,
+                        password=form.password.data,
+                        store_url=form.store_url.data,
+                        api_version=form.api_version.data,
+                        is_valid=True,
+                        shop_name=response.get('shop', {}).get('name', '')
+                    )
+                    db.session.add(new_settings)
+                    db.session.commit()
+                
+                flash(f'Shopify settings saved and connected to {response.get("shop", {}).get("name", "your store")} successfully!', 'success')
+                connection_status = {
+                    'valid': True,
+                    'shop_name': response.get('shop', {}).get('name', ''),
+                    'plan_name': response.get('shop', {}).get('plan_name', ''),
+                    'shop_email': response.get('shop', {}).get('email', '')
+                }
+            else:
+                flash(f'Could not connect to Shopify: {response}', 'danger')
+                connection_status = {
+                    'valid': False,
+                    'error': str(response)
+                }
+                # Still save the settings, but mark as invalid
+                if active_settings:
+                    active_settings.api_key = form.api_key.data
+                    active_settings.password = form.password.data
+                    active_settings.store_url = form.store_url.data
+                    active_settings.api_version = form.api_version.data
+                    active_settings.last_used_at = datetime.utcnow()
+                    active_settings.is_valid = False
+                    db.session.commit()
+                else:
+                    new_settings = ShopifySettings(
+                        api_key=form.api_key.data,
+                        password=form.password.data,
+                        store_url=form.store_url.data,
+                        api_version=form.api_version.data,
+                        is_valid=False
+                    )
+                    db.session.add(new_settings)
+                    db.session.commit()
+        except Exception as e:
+            logger.error(f"Error testing Shopify API connection: {str(e)}")
+            flash(f'Error connecting to Shopify API: {str(e)}', 'danger')
+            connection_status = {
+                'valid': False,
+                'error': str(e)
+            }
+            # Still save the settings, but mark as invalid
+            if active_settings:
+                active_settings.api_key = form.api_key.data
+                active_settings.password = form.password.data
+                active_settings.store_url = form.store_url.data
+                active_settings.api_version = form.api_version.data
+                active_settings.last_used_at = datetime.utcnow()
+                active_settings.is_valid = False
+                db.session.commit()
+            else:
+                new_settings = ShopifySettings(
+                    api_key=form.api_key.data,
+                    password=form.password.data,
+                    store_url=form.store_url.data,
+                    api_version=form.api_version.data,
+                    is_valid=False
+                )
+                db.session.add(new_settings)
+                db.session.commit()
         
-        flash('Shopify settings saved successfully!', 'success')
         return redirect(url_for('main.settings'))
     
     # Pre-fill the form with existing settings if available
@@ -74,8 +152,55 @@ def settings():
         form.password.data = active_settings.password
         form.store_url.data = active_settings.store_url
         form.api_version.data = active_settings.api_version
+        
+        # Test existing connection if we have settings
+        if not connection_status and active_settings.api_key and active_settings.password and active_settings.store_url:
+            try:
+                shopify_client = ShopifyClient(
+                    api_key=active_settings.api_key,
+                    password=active_settings.password,
+                    store_url=active_settings.store_url,
+                    api_version=active_settings.api_version
+                )
+                is_valid, response = shopify_client.test_connection()
+                
+                if is_valid:
+                    connection_status = {
+                        'valid': True,
+                        'shop_name': response.get('shop', {}).get('name', ''),
+                        'plan_name': response.get('shop', {}).get('plan_name', ''),
+                        'shop_email': response.get('shop', {}).get('email', '')
+                    }
+                    
+                    # Update the is_valid flag if needed
+                    if not active_settings.is_valid:
+                        active_settings.is_valid = True
+                        active_settings.shop_name = response.get('shop', {}).get('name', '')
+                        db.session.commit()
+                        
+                else:
+                    connection_status = {
+                        'valid': False,
+                        'error': str(response)
+                    }
+                    
+                    # Update the is_valid flag if needed
+                    if active_settings.is_valid:
+                        active_settings.is_valid = False
+                        db.session.commit()
+            except Exception as e:
+                logger.error(f"Error testing existing Shopify API connection: {str(e)}")
+                connection_status = {
+                    'valid': False,
+                    'error': str(e)
+                }
+                
+                # Update the is_valid flag if needed
+                if active_settings.is_valid:
+                    active_settings.is_valid = False
+                    db.session.commit()
     
-    return render_template('settings.html', form=form)
+    return render_template('settings.html', form=form, connection_status=connection_status)
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():

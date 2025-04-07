@@ -14,6 +14,8 @@ class ShopifySettings(db.Model):
     store_url = db.Column(db.String(255), nullable=False)
     api_version = db.Column(db.String(50), nullable=False, default='2023-07')
     is_active = db.Column(db.Boolean, default=True)
+    is_valid = db.Column(db.Boolean, default=False)  # Whether API credentials are valid
+    shop_name = db.Column(db.String(255), nullable=True)  # Store name from Shopify API
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_used_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
