@@ -730,16 +730,102 @@ def publish_blog_post(post_id):
             active_settings.api_version
         )
         
-        # Create a new blog post in Shopify
-        # Note: Actual implementation will depend on your ShopifyClient implementation
+        # First, check if we need to get the blog ID or if already have it
+        blog_id = None
+        if blog_post.shopify_blog_id:
+            blog_id = blog_post.shopify_blog_id
+        else:
+            # Get available blogs from the shop
+            blogs_response = shopify_client.get_blogs()
+            
+            if blogs_response and 'blogs' in blogs_response and blogs_response['blogs']:
+                # Use the first blog by default
+                blog_id = blogs_response['blogs'][0]['id']
+                
+                # Or try to find a blog with a name that contains 'blog', 'news', or 'article'
+                for blog in blogs_response['blogs']:
+                    blog_title = blog.get('title', '').lower()
+                    if 'blog' in blog_title or 'news' in blog_title or 'article' in blog_title:
+                        blog_id = blog['id']
+                        break
+            
+            # If no blogs found, create one
+            if not blog_id:
+                new_blog_data = {
+                    'blog': {
+                        'title': 'Store Blog',
+                        'commentable': 'moderate'
+                    }
+                }
+                blog_response = shopify_client.create_blog(new_blog_data)
+                if blog_response and 'blog' in blog_response:
+                    blog_id = blog_response['blog']['id']
+                else:
+                    raise Exception("Failed to create a blog in Shopify")
         
-        # Update the blog post status to 'published'
-        blog_post.status = 'published'
-        blog_post.publish_date = datetime.utcnow()
-        blog_post.settings_id = active_settings.id
-        db.session.commit()
+        # Prepare the article data
+        article_data = {
+            'article': {
+                'title': blog_post.title,
+                'author': blog_post.author or 'Store Admin',
+                'body_html': blog_post.content,
+                'published': True,
+                'published_at': blog_post.publish_date.isoformat() if blog_post.publish_date else datetime.utcnow().isoformat(),
+                'summary_html': blog_post.summary or '',
+                'tags': blog_post.tags or '',
+                'handle': blog_post.url_handle or None,
+                'metafields': []
+            }
+        }
         
-        flash('Blog post published to Shopify successfully!', 'success')
+        # Add metafields for SEO if available
+        if blog_post.meta_title:
+            article_data['article']['metafields'].append({
+                'namespace': 'global',
+                'key': 'title_tag',
+                'value': blog_post.meta_title,
+                'type': 'single_line_text_field'
+            })
+            
+        if blog_post.meta_description:
+            article_data['article']['metafields'].append({
+                'namespace': 'global',
+                'key': 'description_tag',
+                'value': blog_post.meta_description,
+                'type': 'single_line_text_field'
+            })
+        
+        # Add featured image if available
+        if blog_post.featured_image_url:
+            article_data['article']['image'] = {
+                'src': blog_post.featured_image_url
+            }
+        
+        # Create or update the article in Shopify
+        if blog_post.shopify_post_id:
+            # Update existing post
+            response = shopify_client.update_article(
+                blog_id, 
+                blog_post.shopify_post_id, 
+                article_data
+            )
+        else:
+            # Create new post
+            response = shopify_client.create_article(blog_id, article_data)
+        
+        # Update local data with Shopify IDs
+        if response and 'article' in response:
+            blog_post.shopify_blog_id = str(blog_id)
+            blog_post.shopify_post_id = str(response['article']['id'])
+            blog_post.status = 'published'
+            blog_post.publish_date = datetime.utcnow()
+            blog_post.settings_id = active_settings.id
+            db.session.commit()
+            
+            flash('Blog post published to Shopify successfully!', 'success')
+        else:
+            raise Exception("Failed to publish article to Shopify")
+        
         return redirect(url_for('main.blog_preview', post_id=post_id))
         
     except Exception as e:

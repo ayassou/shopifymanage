@@ -142,3 +142,104 @@ class ShopifyClient:
             dict: Search results
         """
         return self._make_request('GET', f'products.json?title={query}')
+        
+    # Blog API Methods
+    
+    def get_blogs(self):
+        """
+        Get a list of all blogs from the Shopify store
+        
+        Returns:
+            dict: List of blogs
+        """
+        return self._make_request('GET', 'blogs.json')
+        
+    def get_blog(self, blog_id):
+        """
+        Get details of a specific blog
+        
+        Args:
+            blog_id (str): ID of the blog to retrieve
+            
+        Returns:
+            dict: Blog data
+        """
+        return self._make_request('GET', f'blogs/{blog_id}.json')
+        
+    def create_blog(self, blog_data):
+        """
+        Create a new blog in Shopify
+        
+        Args:
+            blog_data (dict): Blog data in Shopify API format
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        return self._make_request('POST', 'blogs.json', data=blog_data)
+        
+    def get_articles(self, blog_id, limit=50):
+        """
+        Get articles from a specific blog
+        
+        Args:
+            blog_id (str): ID of the blog
+            limit (int): Maximum number of articles to retrieve
+            
+        Returns:
+            dict: List of articles
+        """
+        return self._make_request('GET', f'blogs/{blog_id}/articles.json?limit={limit}')
+        
+    def get_article(self, blog_id, article_id):
+        """
+        Get a specific article from a blog
+        
+        Args:
+            blog_id (str): ID of the blog
+            article_id (str): ID of the article
+            
+        Returns:
+            dict: Article data
+        """
+        return self._make_request('GET', f'blogs/{blog_id}/articles/{article_id}.json')
+        
+    def create_article(self, blog_id, article_data):
+        """
+        Create a new article in a blog
+        
+        Args:
+            blog_id (str): ID of the blog
+            article_data (dict): Article data in Shopify API format
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        return self._make_request('POST', f'blogs/{blog_id}/articles.json', data=article_data)
+        
+    def update_article(self, blog_id, article_id, article_data):
+        """
+        Update an existing article
+        
+        Args:
+            blog_id (str): ID of the blog
+            article_id (str): ID of the article to update
+            article_data (dict): Updated article data
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        return self._make_request('PUT', f'blogs/{blog_id}/articles/{article_id}.json', data=article_data)
+        
+    def delete_article(self, blog_id, article_id):
+        """
+        Delete an article from a blog
+        
+        Args:
+            blog_id (str): ID of the blog
+            article_id (str): ID of the article to delete
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        return self._make_request('DELETE', f'blogs/{blog_id}/articles/{article_id}.json')
