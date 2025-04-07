@@ -53,10 +53,26 @@
                         <a class="nav-link {% if request.path == url_for('main.upload') %}active{% endif %}" 
                            href="{{ url_for('main.upload') }}">Upload Products</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == url_for('main.ai_generator') %}active{% endif %}" 
-                           href="{{ url_for('main.ai_generator') }}">
-                           <i class="fas fa-robot me-1"></i> AI Generator</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'ai_generator' in request.path or 'blog_generator' in request.path %}active{% endif %}" 
+                           href="#" id="aiDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                           <i class="fas fa-robot me-1"></i> AI Generator
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="aiDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == url_for('main.ai_generator') %}active{% endif %}" 
+                                   href="{{ url_for('main.ai_generator') }}">
+                                   <i class="fas fa-box-open me-1"></i> Product Generator
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == url_for('main.blog_generator') %}active{% endif %}" 
+                                   href="{{ url_for('main.blog_generator') }}">
+                                   <i class="fas fa-newspaper me-1"></i> Blog Post Generator
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </div>

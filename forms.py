@@ -70,3 +70,69 @@ class AIGeneratorForm(FlaskForm):
                                 description='For URLs: automatically extract product images')
     
     submit = SubmitField('Generate Product Data')
+    
+class BlogPostGeneratorForm(FlaskForm):
+    """Form for the AI blog post generator"""
+    title = StringField('Blog Post Title', 
+                      validators=[Optional()],
+                      description='Optional: Leave blank for AI to generate title')
+    
+    topic = StringField('Topic/Subject', 
+                      validators=[DataRequired()],
+                      description='Main subject of the blog post (e.g., "Summer Fashion Trends", "Benefits of Organic Products")')
+    
+    keywords = TextAreaField('Keywords', 
+                           validators=[DataRequired()],
+                           description='Comma-separated keywords to include in the post')
+    
+    content_type = SelectField('Content Type',
+                            choices=[
+                                ('how_to', 'How-To Guide'),
+                                ('list', 'List Article (Top 10, etc.)'),
+                                ('comparison', 'Comparison/Review'),
+                                ('informational', 'Informational'),
+                                ('case_study', 'Case Study'),
+                                ('news', 'News/Trend Analysis'),
+                                ('story', 'Story/Narrative')
+                            ],
+                            default='informational')
+    
+    tone = SelectField('Tone of Voice',
+                     choices=[
+                         ('professional', 'Professional'),
+                         ('casual', 'Casual/Conversational'),
+                         ('enthusiastic', 'Enthusiastic'),
+                         ('informative', 'Informative'),
+                         ('humorous', 'Humorous'),
+                         ('authoritative', 'Authoritative')
+                     ],
+                     default='professional')
+    
+    target_audience = StringField('Target Audience',
+                                validators=[Optional()],
+                                description='Who is this content for? (e.g., "new parents", "tech enthusiasts")')
+    
+    word_count = IntegerField('Word Count',
+                            validators=[Optional(), NumberRange(min=300, max=5000)],
+                            default=1000,
+                            description='Target length of the blog post')
+    
+    include_sections = BooleanField('Include Sections with Headings', default=True,
+                                  description='Organize content into sections with headings')
+    
+    include_faq = BooleanField('Include FAQ Section', default=True,
+                             description='Add a frequently asked questions section to the post')
+    
+    include_cta = BooleanField('Include Call to Action', default=True,
+                             description='Add a call-to-action section at the end')
+                             
+    reference_products = BooleanField('Reference Store Products', default=True,
+                                    description='Include relevant product mentions from your store')
+    
+    seo_optimize = BooleanField('Optimize for SEO', default=True,
+                              description='Generate SEO-friendly meta title, description, and keywords')
+    
+    generate_image = BooleanField('Generate Featured Image', default=False,
+                                description='Use AI to generate a featured image (requires image generation capabilities)')
+    
+    submit = SubmitField('Generate Blog Post')

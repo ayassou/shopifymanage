@@ -3,6 +3,7 @@ import json
 import base64
 import logging
 import requests
+import datetime
 from io import BytesIO
 import pandas as pd
 from openai import OpenAI
@@ -572,3 +573,168 @@ class AIService:
         except Exception as e:
             logger.error(f"Failed to format product data for CSV: {str(e)}")
             raise
+            
+    def generate_blog_post(self, blog_params):
+        """
+        Generate a complete blog post based on input parameters.
+        
+        Args:
+            blog_params (dict): Parameters for blog generation including topic, keywords, etc.
+            
+        Returns:
+            dict: Generated blog post data
+        """
+        try:
+            logger.debug(f"Generating blog post on topic: {blog_params.get('topic', 'Unspecified')}")
+            
+            # Extract parameters
+            title = blog_params.get('title')
+            topic = blog_params.get('topic', '')
+            keywords = blog_params.get('keywords', '')
+            content_type = blog_params.get('content_type', 'informational')
+            tone = blog_params.get('tone', 'professional')
+            target_audience = blog_params.get('target_audience', '')
+            word_count = blog_params.get('word_count', 1000)
+            include_sections = blog_params.get('include_sections', True)
+            include_faq = blog_params.get('include_faq', True)
+            include_cta = blog_params.get('include_cta', True)
+            reference_products = blog_params.get('reference_products', True)
+            
+            # Content type mapping for better prompting
+            content_type_instructions = {
+                'how_to': "Create a step-by-step guide explaining how to solve a problem or accomplish a task.",
+                'list': "Format as a numbered list article with clear bullet points and brief explanations.",
+                'comparison': "Compare and contrast different options, highlighting pros and cons.",
+                'informational': "Provide detailed, authoritative information on the topic.",
+                'case_study': "Structure as a case study with background, challenge, solution, and results.",
+                'news': "Present as timely news or analysis of current trends.",
+                'story': "Frame as a narrative with a beginning, middle, and end."
+            }
+            
+            # Tone mapping for better prompting
+            tone_instructions = {
+                'professional': "Use formal, authoritative language appropriate for business contexts.",
+                'casual': "Write in a conversational, friendly tone as if talking to a friend.",
+                'enthusiastic': "Employ energetic, passionate language that conveys excitement.",
+                'informative': "Focus on clear, factual communication without unnecessary embellishment.",
+                'humorous': "Include appropriate humor and a light-hearted approach.",
+                'authoritative': "Write as an expert with strong, confident assertions backed by evidence."
+            }
+            
+            # Structure options based on parameters
+            structure_instructions = []
+            if include_sections:
+                structure_instructions.append("Organize the post with clear H2 and H3 headings for different sections.")
+            if include_faq:
+                structure_instructions.append("Include a FAQ section at the end with 3-5 common questions and concise answers.")
+            if include_cta:
+                structure_instructions.append("End with a strong call-to-action that encourages reader engagement.")
+            if reference_products:
+                structure_instructions.append("Naturally incorporate references to relevant products where appropriate.")
+            
+            # Build the prompt
+            content_instruction = content_type_instructions.get(content_type, content_type_instructions['informational'])
+            tone_instruction = tone_instructions.get(tone, tone_instructions['professional'])
+            structure_instruction = " ".join(structure_instructions)
+            
+            # If title is provided, use it; otherwise, instruct AI to generate one
+            title_instruction = f"Use this title: '{title}'" if title else "Generate an engaging, SEO-friendly title."
+            
+            prompt = f"""
+            Generate a comprehensive blog post on: "{topic}"
+            
+            {title_instruction}
+            
+            Key details:
+            - Keywords to include: {keywords}
+            - Target audience: {target_audience if target_audience else "General readers interested in this topic"}
+            - Target word count: approximately {word_count} words
+            
+            Content approach: {content_instruction}
+            Tone of voice: {tone_instruction}
+            Structure: {structure_instruction}
+            
+            Format the response as a JSON object with the following fields:
+            - title: The blog post title (engaging and SEO-optimized)
+            - content: The full blog post content with HTML formatting (use <h2>, <h3>, <p>, <ul>, <li> tags appropriately)
+            - summary: A 2-3 sentence summary of the post
+            - meta_title: SEO-optimized title (60-70 characters)
+            - meta_description: Compelling meta description (150-160 characters)
+            - meta_keywords: 5-8 relevant keywords separated by commas
+            - url_handle: SEO-friendly URL slug (lowercase, hyphens instead of spaces)
+            - tags: Array of 5-7 relevant tags
+            - category: Suggested primary category for the post
+            - estimated_reading_time: Estimated reading time in minutes
+            """
+            
+            # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+            # do not change this unless explicitly requested by the user
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse the response
+            result = json.loads(response.choices[0].message.content)
+            
+            # Add some metadata
+            result['generated_at'] = datetime.datetime.now().isoformat()
+            result['generation_params'] = {
+                'topic': topic,
+                'content_type': content_type,
+                'tone': tone,
+                'word_count': word_count
+            }
+            
+            logger.debug(f"Successfully generated blog post: {result.get('title', 'Untitled')}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to generate blog post: {str(e)}")
+            raise
+    
+    def generate_blog_image(self, title, content_summary):
+        """
+        Generate a featured image for a blog post.
+        
+        Args:
+            title (str): The blog post title
+            content_summary (str): A summary of the blog content
+            
+        Returns:
+            str: URL or base64 data of the generated image
+        """
+        try:
+            logger.debug(f"Generating featured image for blog: {title}")
+            
+            # Create a descriptive prompt for the image
+            prompt = f"""
+            Create a featured image for a blog post titled: "{title}"
+            
+            Content summary: {content_summary}
+            
+            Style: Professional, editorial, suitable for a business blog.
+            Make it visually appealing and relevant to the topic.
+            No text overlay needed - the image should be clean and versatile.
+            """
+            
+            # Only OpenAI supports image generation currently
+            if self.api_provider == "openai":
+                response = self.client.images.generate(
+                    model="dall-e-3",
+                    prompt=prompt,
+                    n=1,
+                    size="1024x1024",
+                )
+                image_url = response.data[0].url
+                logger.debug(f"Successfully generated image with URL: {image_url}")
+                return image_url
+            else:
+                logger.warning(f"Image generation not supported for provider: {self.api_provider}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to generate blog image: {str(e)}")
+            # Return None rather than failing the whole process
+            return None

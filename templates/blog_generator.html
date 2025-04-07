@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}AI Blog Post Generator{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Left sidebar with stats -->
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Blog Statistics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="stats-item mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Total Posts:</span>
+                        <span class="badge bg-secondary">{{ stats.total_posts }}</span>
+                    </div>
+                </div>
+                <div class="stats-item mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Published:</span>
+                        <span class="badge bg-success">{{ stats.published_posts }}</span>
+                    </div>
+                </div>
+                <div class="stats-item mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Drafts:</span>
+                        <span class="badge bg-warning">{{ stats.draft_posts }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Tips
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Be specific with your topic</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Include relevant keywords</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Choose appropriate tone for audience</li>
+                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Aim for 1000-1500 words for SEO</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right content area with the form -->
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header bg-dark">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-newspaper me-2"></i>AI Blog Post Generator
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">Generate high-quality blog content for your Shopify store with AI assistance.</p>
+                
+                <form method="POST" action="{{ url_for('main.blog_generator') }}">
+                    {{ form.csrf_token }}
+                    
+                    <div class="accordion mb-4" id="blogGeneratorAccordion">
+                        <!-- Basic Information -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="basicHeading">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#basicCollapse" aria-expanded="true" aria-controls="basicCollapse">
+                                    <i class="fas fa-info-circle me-2"></i>Basic Information
+                                </button>
+                            </h2>
+                            <div id="basicCollapse" class="accordion-collapse collapse show" aria-labelledby="basicHeading" data-bs-parent="#blogGeneratorAccordion">
+                                <div class="accordion-body">
+                                    <div class="mb-3">
+                                        {{ form.title.label(class="form-label") }}
+                                        {{ form.title(class="form-control", placeholder="Leave blank for AI to generate title") }}
+                                        {% if form.title.description %}
+                                            <div class="form-text text-muted">{{ form.title.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        {{ form.topic.label(class="form-label") }}
+                                        {{ form.topic(class="form-control", placeholder="e.g., Summer Fashion Trends, Benefits of Organic Products") }}
+                                        {% if form.topic.description %}
+                                            <div class="form-text text-muted">{{ form.topic.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        {{ form.keywords.label(class="form-label") }}
+                                        {{ form.keywords(class="form-control", rows=3, placeholder="Enter keywords separated by commas") }}
+                                        {% if form.keywords.description %}
+                                            <div class="form-text text-muted">{{ form.keywords.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Content Configuration -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="contentHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contentCollapse" aria-expanded="false" aria-controls="contentCollapse">
+                                    <i class="fas fa-file-alt me-2"></i>Content Configuration
+                                </button>
+                            </h2>
+                            <div id="contentCollapse" class="accordion-collapse collapse" aria-labelledby="contentHeading" data-bs-parent="#blogGeneratorAccordion">
+                                <div class="accordion-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            {{ form.content_type.label(class="form-label") }}
+                                            {{ form.content_type(class="form-select") }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            {{ form.tone.label(class="form-label") }}
+                                            {{ form.tone(class="form-select") }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        {{ form.target_audience.label(class="form-label") }}
+                                        {{ form.target_audience(class="form-control", placeholder="e.g., new parents, tech enthusiasts, homeowners") }}
+                                        {% if form.target_audience.description %}
+                                            <div class="form-text text-muted">{{ form.target_audience.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        {{ form.word_count.label(class="form-label") }}
+                                        {{ form.word_count(class="form-control", type="number", min=300, max=5000) }}
+                                        {% if form.word_count.description %}
+                                            <div class="form-text text-muted">{{ form.word_count.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Options -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="advancedHeading">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#advancedCollapse" aria-expanded="false" aria-controls="advancedCollapse">
+                                    <i class="fas fa-cogs me-2"></i>Advanced Options
+                                </button>
+                            </h2>
+                            <div id="advancedCollapse" class="accordion-collapse collapse" aria-labelledby="advancedHeading" data-bs-parent="#blogGeneratorAccordion">
+                                <div class="accordion-body">
+                                    <div class="form-check mb-3">
+                                        {{ form.include_sections(class="form-check-input") }}
+                                        {{ form.include_sections.label(class="form-check-label") }}
+                                        {% if form.include_sections.description %}
+                                            <div class="form-text text-muted">{{ form.include_sections.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        {{ form.include_faq(class="form-check-input") }}
+                                        {{ form.include_faq.label(class="form-check-label") }}
+                                        {% if form.include_faq.description %}
+                                            <div class="form-text text-muted">{{ form.include_faq.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        {{ form.include_cta(class="form-check-input") }}
+                                        {{ form.include_cta.label(class="form-check-label") }}
+                                        {% if form.include_cta.description %}
+                                            <div class="form-text text-muted">{{ form.include_cta.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        {{ form.reference_products(class="form-check-input") }}
+                                        {{ form.reference_products.label(class="form-check-label") }}
+                                        {% if form.reference_products.description %}
+                                            <div class="form-text text-muted">{{ form.reference_products.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        {{ form.seo_optimize(class="form-check-input") }}
+                                        {{ form.seo_optimize.label(class="form-check-label") }}
+                                        {% if form.seo_optimize.description %}
+                                            <div class="form-text text-muted">{{ form.seo_optimize.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        {{ form.generate_image(class="form-check-input") }}
+                                        {{ form.generate_image.label(class="form-check-label") }}
+                                        {% if form.generate_image.description %}
+                                            <div class="form-text text-muted">{{ form.generate_image.description }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Make the first accordion panel open by default
+    document.addEventListener('DOMContentLoaded', function() {
+        var firstAccordion = document.querySelector('#basicCollapse');
+        if (firstAccordion) {
+            new bootstrap.Collapse(firstAccordion, {
+                toggle: true
+            });
+        }
+    });
+</script>
+{% endblock %}
