@@ -53,7 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
 
-    document.getElementById('store-creation-form').addEventListener('submit', async function(e) {
+    const form = document.getElementById('store-creation-form');
+    if (form) {
+        form.addEventListener('submit', async function(e) {
         e.preventDefault();
         showLoading();
         try {
@@ -78,5 +80,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } finally {
             hideLoading();
         }
-    });
+        });
+    }
 });
