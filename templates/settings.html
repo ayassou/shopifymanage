@@ -6,92 +6,96 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card border-0 shadow">
-            <div class="card-header bg-dark">
-                <h2 class="mb-0"><i class="fas fa-cog me-2"></i> Shopify API Settings</h2>
+            <div class="card-header bg-dark text-white">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-cog me-2"></i> Shopify API Settings
+                </h2>
             </div>
-            <div class="card-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i> You'll need to provide your Shopify API credentials to connect to your store.
-                </div>
+            <div class="card-body p-4">
+                <p class="mb-4">
+                    Enter your Shopify API credentials to connect with your store. These credentials are used to create and update products via the Shopify API.
+                </p>
                 
-                <form method="POST" action="{{ url_for('settings') }}">
+                <form method="POST" action="{{ url_for('main.settings') }}">
                     {{ form.hidden_tag() }}
                     
                     <div class="mb-3">
                         {{ form.api_key.label(class="form-label") }}
-                        {{ form.api_key(class="form-control", placeholder="Enter your Shopify API key") }}
                         {% if form.api_key.errors %}
-                            <div class="invalid-feedback d-block">
+                            {{ form.api_key(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
                                 {% for error in form.api_key.errors %}
                                     {{ error }}
                                 {% endfor %}
                             </div>
+                        {% else %}
+                            {{ form.api_key(class="form-control") }}
                         {% endif %}
-                        <div class="form-text">
-                            Your Shopify API key can be found in your Shopify Admin under Apps > Develop apps
-                        </div>
+                        <div class="form-text">Your Shopify API key, found in the Shopify admin panel.</div>
                     </div>
                     
                     <div class="mb-3">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control", placeholder="Enter your Shopify API password or access token") }}
                         {% if form.password.errors %}
-                            <div class="invalid-feedback d-block">
+                            {{ form.password(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
                                 {% for error in form.password.errors %}
                                     {{ error }}
                                 {% endfor %}
                             </div>
+                        {% else %}
+                            {{ form.password(class="form-control") }}
                         {% endif %}
-                        <div class="form-text">
-                            This is either your API password or a private app access token
-                        </div>
+                        <div class="form-text">Your Shopify API password or access token.</div>
                     </div>
                     
                     <div class="mb-3">
                         {{ form.store_url.label(class="form-label") }}
-                        {{ form.store_url(class="form-control", placeholder="yourstorename.myshopify.com") }}
                         {% if form.store_url.errors %}
-                            <div class="invalid-feedback d-block">
+                            {{ form.store_url(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
                                 {% for error in form.store_url.errors %}
                                     {{ error }}
                                 {% endfor %}
                             </div>
+                        {% else %}
+                            {{ form.store_url(class="form-control") }}
                         {% endif %}
-                        <div class="form-text">
-                            Your Shopify store URL (e.g., yourstorename.myshopify.com)
-                        </div>
+                        <div class="form-text">{{ form.store_url.description }}</div>
                     </div>
                     
-                    <div class="mb-3">
+                    <div class="mb-4">
                         {{ form.api_version.label(class="form-label") }}
-                        {{ form.api_version(class="form-control", placeholder="2023-07") }}
                         {% if form.api_version.errors %}
-                            <div class="invalid-feedback d-block">
+                            {{ form.api_version(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
                                 {% for error in form.api_version.errors %}
                                     {{ error }}
                                 {% endfor %}
                             </div>
+                        {% else %}
+                            {{ form.api_version(class="form-control") }}
                         {% endif %}
-                        <div class="form-text">
-                            The Shopify API version to use (default: 2023-07)
-                        </div>
+                        <div class="form-text">The Shopify API version to use (e.g., 2023-07).</div>
                     </div>
                     
                     <div class="d-grid gap-2">
                         {{ form.submit(class="btn btn-primary") }}
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
-                
-                <hr class="my-4">
-                
-                <h3 class="h5">How to get your API credentials</h3>
-                <ol class="mb-0">
-                    <li>Go to your Shopify admin panel</li>
-                    <li>Navigate to Apps > Develop apps</li>
-                    <li>Create a private app if you don't have one already</li>
-                    <li>Set the appropriate permissions (read/write for products)</li>
-                    <li>Copy the API key and password/token</li>
-                </ol>
+            </div>
+            <div class="card-footer bg-dark p-3">
+                <div class="alert alert-info mb-0">
+                    <h5 class="alert-heading"><i class="fas fa-info-circle me-2"></i> How to Get Your API Credentials</h5>
+                    <ol class="mb-0">
+                        <li>Log in to your Shopify admin panel</li>
+                        <li>Go to Apps > App and sales channel settings</li>
+                        <li>Click "Develop apps" and create a new private app</li>
+                        <li>Give your app a name and the necessary permissions (read_products, write_products)</li>
+                        <li>Save the app and copy the API credentials</li>
+                    </ol>
+                </div>
             </div>
         </div>
     </div>

@@ -1,61 +1,22 @@
 {% extends 'base.html' %}
 
-{% block title %}Upload Product Data{% endblock %}
+{% block title %}Upload Products{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-md-10">
         <div class="card border-0 shadow">
-            <div class="card-header bg-dark">
-                <h2 class="mb-0"><i class="fas fa-file-upload me-2"></i> Upload Product Data</h2>
+            <div class="card-header bg-dark text-white">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-file-upload me-2"></i> Upload Product Data
+                </h2>
             </div>
-            <div class="card-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i> Upload a CSV or Excel file with your product data.
-                </div>
+            <div class="card-body p-4">
+                <p class="lead mb-4">
+                    Upload your product data as a CSV or Excel file. Make sure your file follows the required format.
+                </p>
                 
-                <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="mb-4">
-                        <label for="file-upload" class="form-label d-block">Product Data File</label>
-                        <div class="input-group mb-3">
-                            <input type="file" class="form-control" id="file-upload" 
-                                   aria-describedby="file-upload-help" name="file" accept=".csv,.xlsx,.xls">
-                            <label class="input-group-text" for="file-upload">Browse</label>
-                        </div>
-                        {% if form.file.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.file.errors %}
-                                    {{ error }}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                        <div class="form-text">
-                            Accepted formats: CSV, Excel (.xlsx, .xls)
-                        </div>
-                    </div>
-                    
-                    <div class="d-grid gap-2">
-                        {{ form.submit(class="btn btn-primary") }}
-                    </div>
-                </form>
-                
-                <hr class="my-4">
-                
-                <h3 class="h5 mb-3">File Format Requirements</h3>
-                <p>Your file should include the following columns:</p>
-                <ul class="mb-4">
-                    <li><strong>Required:</strong> title, price</li>
-                    <li><strong>Basic Optional Fields:</strong> description, vendor, product_type, tags, sku, inventory_quantity, image_url, etc.</li>
-                    <li><strong>SEO Optional Fields:</strong> meta_title, meta_description, meta_keywords, url_handle, category_hierarchy, image_alt</li>
-                </ul>
-                
-                <div class="alert alert-info">
-                    <i class="fas fa-lightbulb me-2"></i> <strong>New SEO Features!</strong> Include SEO-specific fields to optimize your product pages for search engines. Add meta titles, descriptions, custom URL handles, and more.
-                </div>
-                
-                <div class="accordion" id="templateAccordion">
+                <div class="accordion mb-4" id="templateAccordion">
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingSEO">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
@@ -109,7 +70,7 @@
                              data-bs-parent="#templateAccordion">
                             <div class="accordion-body">
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-striped table-dark">
+                                    <table class="table table-sm table-dark">
                                         <thead>
                                             <tr>
                                                 <th>title</th>
@@ -155,26 +116,49 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                <div class="text-center mt-3">
+                                    <a href="#" class="btn btn-sm btn-outline-info">Download Sample CSV</a>
+                                    <a href="#" class="btn btn-sm btn-outline-info">Download Sample Excel</a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                <form method="POST" enctype="multipart/form-data" action="{{ url_for('main.upload') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-4">
+                        <div class="card bg-dark border-secondary p-3">
+                            <div class="mb-3">
+                                {{ form.file.label(class="form-label") }}
+                                {% if form.file.errors %}
+                                    {{ form.file(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.file.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.file(class="form-control") }}
+                                {% endif %}
+                                <div class="form-text">Upload a CSV or Excel file with your product data.</div>
+                            </div>
+                            
+                            <div class="alert alert-secondary">
+                                <strong>Supported File Types:</strong> .csv, .xlsx, .xls<br>
+                                <strong>Maximum File Size:</strong> 10MB
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Show selected filename
-    const fileInput = document.getElementById('file-upload');
-    fileInput.addEventListener('change', function() {
-        const fileName = this.files[0]?.name || 'No file chosen';
-        const fileText = document.querySelector('.form-text');
-        fileText.textContent = fileName;
-    });
-});
-</script>
 {% endblock %}

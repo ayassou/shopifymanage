@@ -6,176 +6,244 @@
 <div class="row justify-content-center">
     <div class="col-md-10">
         <div class="card border-0 shadow">
-            <div class="card-header bg-dark">
-                <h2 class="mb-0"><i class="fas fa-clipboard-check me-2"></i> Product Upload Results</h2>
+            <div class="card-header bg-dark text-white">
+                <h2 class="h4 mb-0">
+                    <i class="fas fa-check-circle me-2"></i> Product Upload Results
+                </h2>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <div class="alert alert-info mb-4">
-                    <i class="fas fa-info-circle me-2"></i> Results of your product upload process.
+                    <h5 class="alert-heading">Upload Summary</h5>
+                    <p class="mb-0">
+                        <strong>File:</strong> {{ upload.filename }}<br>
+                        <strong>Total Records:</strong> {{ upload.record_count }}<br>
+                        <strong>Success:</strong> {{ upload.success_count }} | 
+                        <strong>Errors:</strong> {{ upload.error_count }}
+                    </p>
                 </div>
                 
-                {% set success_count = results|selectattr('status', 'equalto', 'success')|list|length %}
-                {% set error_count = results|selectattr('status', 'equalto', 'error')|list|length %}
-                {% set total_count = results|length %}
+                {% if results %}
+                <ul class="nav nav-tabs mb-4" id="resultTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-tab-pane" 
+                                type="button" role="tab" aria-controls="all-tab-pane" aria-selected="true">
+                            All Results ({{ results|length }})
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="success-tab" data-bs-toggle="tab" data-bs-target="#success-tab-pane" 
+                                type="button" role="tab" aria-controls="success-tab-pane" aria-selected="false">
+                            Success ({{ results|selectattr('status', 'equalto', 'success')|list|length }})
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="error-tab" data-bs-toggle="tab" data-bs-target="#error-tab-pane" 
+                                type="button" role="tab" aria-controls="error-tab-pane" aria-selected="false">
+                            Errors ({{ results|selectattr('status', 'equalto', 'error')|list|length }})
+                        </button>
+                    </li>
+                </ul>
                 
-                <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="card bg-primary text-white">
-                            <div class="card-body text-center">
-                                <h3 class="card-title">{{ total_count }}</h3>
-                                <p class="card-text">Total Products</p>
-                            </div>
+                <div class="tab-content" id="resultTabContent">
+                    <div class="tab-pane fade show active" id="all-tab-pane" role="tabpanel" aria-labelledby="all-tab" tabindex="0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-dark">
+                                <thead>
+                                    <tr>
+                                        <th>Row</th>
+                                        <th>Product Title</th>
+                                        <th>Status</th>
+                                        <th>Details</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for result in results %}
+                                    <tr class="{% if result.status == 'success' %}table-success{% elif result.status == 'error' %}table-danger{% endif %}">
+                                        <td>{{ result.row }}</td>
+                                        <td>{{ result.product_title }}</td>
+                                        <td>
+                                            {% if result.status == 'success' %}
+                                            <span class="badge bg-success">Success</span>
+                                            {% elif result.status == 'error' %}
+                                            <span class="badge bg-danger">Error</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Unknown</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if result.status == 'success' %}
+                                            <small>Product ID: {{ result.product_id }}</small>
+                                            {% elif result.status == 'error' %}
+                                            <small class="text-danger">{{ result.message }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if result.status == 'success' and result.product_id %}
+                                            <button class="btn btn-sm btn-outline-info" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#productModal-{{ loop.index }}">
+                                                View Details
+                                            </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card bg-success text-white">
-                            <div class="card-body text-center">
-                                <h3 class="card-title">{{ success_count }}</h3>
-                                <p class="card-text">Successfully Created</p>
-                            </div>
+                    
+                    <div class="tab-pane fade" id="success-tab-pane" role="tabpanel" aria-labelledby="success-tab" tabindex="0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-dark">
+                                <thead>
+                                    <tr>
+                                        <th>Row</th>
+                                        <th>Product Title</th>
+                                        <th>Product ID</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for result in results if result.status == 'success' %}
+                                    <tr class="table-success">
+                                        <td>{{ result.row }}</td>
+                                        <td>{{ result.product_title }}</td>
+                                        <td><small>{{ result.product_id }}</small></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#productModal-{{ loop.index }}">
+                                                View Details
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card bg-danger text-white">
-                            <div class="card-body text-center">
-                                <h3 class="card-title">{{ error_count }}</h3>
-                                <p class="card-text">Failed</p>
-                            </div>
+                    
+                    <div class="tab-pane fade" id="error-tab-pane" role="tabpanel" aria-labelledby="error-tab" tabindex="0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-dark">
+                                <thead>
+                                    <tr>
+                                        <th>Row</th>
+                                        <th>Product Title</th>
+                                        <th>Error Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for result in results if result.status == 'error' %}
+                                    <tr class="table-danger">
+                                        <td>{{ result.row }}</td>
+                                        <td>{{ result.product_title }}</td>
+                                        <td><small class="text-danger">{{ result.message }}</small></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
                 
-                <h3 class="h5 mb-3">Detailed Results</h3>
-                
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-dark">
-                        <thead>
-                            <tr>
-                                <th>Row #</th>
-                                <th>Product Title</th>
-                                <th>Status</th>
-                                <th>Message</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for result in results %}
-                            <tr class="{{ 'table-success' if result.status == 'success' else 'table-danger' }}">
-                                <td>{{ result.row }}</td>
-                                <td>{{ result.title }}</td>
-                                <td>
-                                    {% if result.status == 'success' %}
-                                    <span class="badge bg-success">Success</span>
-                                    {% else %}
-                                    <span class="badge bg-danger">Error</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ result.message }}</td>
-                                <td>
-                                    {% if result.status == 'success' and result.id %}
-                                    <a href="https://{{ session.shopify_store_url }}/admin/products/{{ result.id }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-external-link-alt me-1"></i> View
-                                    </a>
-                                    {% if result.seo_data %}
-                                    <button type="button" class="btn btn-sm btn-outline-info mt-1" data-bs-toggle="modal" data-bs-target="#seoModal{{ result.id }}">
-                                        <i class="fas fa-search me-1"></i> SEO Details
-                                    </button>
+                <!-- Product Detail Modals -->
+                {% for result in results if result.status == 'success' %}
+                <div class="modal fade" id="productModal-{{ loop.index }}" tabindex="-1" aria-labelledby="productModalLabel-{{ loop.index }}" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content bg-dark">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="productModalLabel-{{ loop.index }}">{{ result.product_title }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Product Details</h6>
+                                        <ul class="list-group list-group-flush bg-dark mb-3">
+                                            <li class="list-group-item bg-dark text-light">
+                                                <strong>Shopify Product ID:</strong><br>
+                                                <span class="ms-2">{{ result.product_id }}</span>
+                                            </li>
+                                            <li class="list-group-item bg-dark text-light">
+                                                <strong>Status:</strong><br>
+                                                <span class="badge bg-success ms-2">Successfully Created</span>
+                                            </li>
+                                        </ul>
+                                    </div>
                                     
-                                    <!-- SEO Details Modal -->
-                                    <div class="modal fade" id="seoModal{{ result.id }}" tabindex="-1" aria-labelledby="seoModalLabel{{ result.id }}" aria-hidden="true">
-                                        <div class="modal-dialog modal-lg">
-                                            <div class="modal-content bg-dark text-light">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="seoModalLabel{{ result.id }}">SEO Details for "{{ result.title }}"</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <div class="card bg-dark border-secondary mb-3">
-                                                        <div class="card-header">
-                                                            <h5><i class="fas fa-search me-2"></i> SEO Preview</h5>
-                                                        </div>
-                                                        <div class="card-body">
-                                                            <div class="mb-3 p-3 border rounded">
-                                                                <h6 class="text-primary">{{ result.seo_data.meta_title|default(result.title) }}</h6>
-                                                                <div class="text-success small">https://{{ session.shopify_store_url }}/products/{{ result.seo_data.url_handle|default('product-handle') }}</div>
-                                                                <p class="small text-muted">{{ result.seo_data.meta_description|default('No meta description provided') }}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="row">
-                                                        <div class="col-md-6">
-                                                            <div class="card h-100 bg-dark border-secondary">
-                                                                <div class="card-header">
-                                                                    <h5><i class="fas fa-tags me-2"></i> Tags & Categories</h5>
-                                                                </div>
-                                                                <div class="card-body">
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label">Category Hierarchy:</label>
-                                                                        <p>{{ result.seo_data.category_hierarchy|default('None') }}</p>
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label">Tags:</label>
-                                                                        <div>
-                                                                            {% if result.seo_data.tags %}
-                                                                                {% for tag in result.seo_data.tags.split(',') %}
-                                                                                    <span class="badge bg-info me-1 mb-1">{{ tag.strip() }}</span>
-                                                                                {% endfor %}
-                                                                            {% else %}
-                                                                                <span class="text-muted">No tags</span>
-                                                                            {% endif %}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="card h-100 bg-dark border-secondary">
-                                                                <div class="card-header">
-                                                                    <h5><i class="fas fa-file-alt me-2"></i> Meta Data</h5>
-                                                                </div>
-                                                                <div class="card-body">
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label">Meta Title:</label>
-                                                                        <p>{{ result.seo_data.meta_title|default('Using product title') }}</p>
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label">Meta Description:</label>
-                                                                        <p>{{ result.seo_data.meta_description|default('None') }}</p>
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label class="form-label">Meta Keywords:</label>
-                                                                        <p>{{ result.seo_data.meta_keywords|default('None') }}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                    <a href="https://{{ session.shopify_store_url }}/admin/products/{{ result.id }}" target="_blank" class="btn btn-primary">
-                                                        <i class="fas fa-edit me-1"></i> Edit in Shopify
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    {% if result.seo_data %}
+                                    <div class="col-md-6">
+                                        <h6>SEO Information</h6>
+                                        <ul class="list-group list-group-flush bg-dark mb-3">
+                                            {% if result.seo_data.meta_title %}
+                                            <li class="list-group-item bg-dark text-light">
+                                                <strong>Meta Title:</strong><br>
+                                                <span class="ms-2">{{ result.seo_data.meta_title }}</span>
+                                            </li>
+                                            {% endif %}
+                                            
+                                            {% if result.seo_data.meta_description %}
+                                            <li class="list-group-item bg-dark text-light">
+                                                <strong>Meta Description:</strong><br>
+                                                <span class="ms-2">{{ result.seo_data.meta_description }}</span>
+                                            </li>
+                                            {% endif %}
+                                            
+                                            {% if result.seo_data.url_handle %}
+                                            <li class="list-group-item bg-dark text-light">
+                                                <strong>URL Handle:</strong><br>
+                                                <span class="ms-2">{{ result.seo_data.url_handle }}</span>
+                                            </li>
+                                            {% endif %}
+                                            
+                                            {% if result.seo_data.meta_keywords %}
+                                            <li class="list-group-item bg-dark text-light">
+                                                <strong>Meta Keywords:</strong><br>
+                                                <span class="ms-2">{{ result.seo_data.meta_keywords }}</span>
+                                            </li>
+                                            {% endif %}
+                                            
+                                            {% if result.seo_data.category_hierarchy %}
+                                            <li class="list-group-item bg-dark text-light">
+                                                <strong>Category Hierarchy:</strong><br>
+                                                <span class="ms-2">{{ result.seo_data.category_hierarchy }}</span>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
                                     </div>
                                     {% endif %}
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                {% if result.product_id %}
+                                <a href="https://{{ session.get('shopify_store_url') }}/admin/products/{{ result.product_id }}" 
+                                   target="_blank" class="btn btn-primary">
+                                    Open in Shopify Admin
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
                 
-                <div class="d-flex justify-content-between mt-4">
-                    <a href="{{ url_for('upload') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-arrow-left me-1"></i> Upload More Products
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No results found. Please try uploading your file again.
+                </div>
+                {% endif %}
+                
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('main.upload') }}" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i> Upload Another File
                     </a>
-                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-home me-1"></i> Back to Home
+                    <a href="{{ url_for('main.index') }}" class="btn btn-secondary ms-2">
+                        <i class="fas fa-home me-2"></i> Return to Dashboard
                     </a>
                 </div>
             </div>

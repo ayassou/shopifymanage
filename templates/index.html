@@ -23,7 +23,7 @@
                                 <i class="fas fa-cog fa-3x mb-3 text-info"></i>
                                 <h5 class="card-title">1. Configure API</h5>
                                 <p class="card-text">Set up your Shopify API credentials to connect with your store.</p>
-                                <a href="{{ url_for('settings') }}" class="btn btn-outline-info mt-2">
+                                <a href="{{ url_for('main.settings') }}" class="btn btn-outline-info mt-2">
                                     Configure Settings
                                 </a>
                             </div>
@@ -36,7 +36,7 @@
                                 <i class="fas fa-file-upload fa-3x mb-3 text-info"></i>
                                 <h5 class="card-title">2. Upload Data</h5>
                                 <p class="card-text">Upload your product data from CSV or Excel files.</p>
-                                <a href="{{ url_for('upload') }}" class="btn btn-outline-info mt-2">
+                                <a href="{{ url_for('main.upload') }}" class="btn btn-outline-info mt-2">
                                     Upload Files
                                 </a>
                             </div>
@@ -53,6 +53,35 @@
                         </div>
                     </div>
                 </div>
+                
+                {% if recent_uploads %}
+                <hr class="my-4">
+                <h3 class="h4 mb-3">Recent Uploads</h3>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Filename</th>
+                                <th>Records</th>
+                                <th>Success</th>
+                                <th>Errors</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for upload in recent_uploads %}
+                            <tr>
+                                <td>{{ upload.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ upload.filename }}</td>
+                                <td>{{ upload.record_count }}</td>
+                                <td><span class="badge bg-success">{{ upload.success_count }}</span></td>
+                                <td>{% if upload.error_count > 0 %}<span class="badge bg-danger">{{ upload.error_count }}</span>{% else %}<span class="badge bg-secondary">0</span>{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
                 
                 <hr class="my-4">
                 
@@ -173,7 +202,7 @@
                 </div>
                 
                 <div class="text-center mt-4">
-                    <a href="{{ url_for('settings') }}" class="btn btn-primary btn-lg">
+                    <a href="{{ url_for('main.settings') }}" class="btn btn-primary btn-lg">
                         Get Started <i class="fas fa-arrow-right ms-2"></i>
                     </a>
                 </div>

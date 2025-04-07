@@ -14,7 +14,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
                 <i class="fab fa-shopify me-2"></i>
                 Shopify Product Uploader
             </a>
@@ -25,16 +25,16 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == url_for('index') %}active{% endif %}" 
-                           href="{{ url_for('index') }}">Home</a>
+                        <a class="nav-link {% if request.path == url_for('main.index') %}active{% endif %}" 
+                           href="{{ url_for('main.index') }}">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == url_for('settings') %}active{% endif %}" 
-                           href="{{ url_for('settings') }}">API Settings</a>
+                        <a class="nav-link {% if request.path == url_for('main.settings') %}active{% endif %}" 
+                           href="{{ url_for('main.settings') }}">API Settings</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == url_for('upload') %}active{% endif %}" 
-                           href="{{ url_for('upload') }}">Upload Products</a>
+                        <a class="nav-link {% if request.path == url_for('main.upload') %}active{% endif %}" 
+                           href="{{ url_for('main.upload') }}">Upload Products</a>
                     </li>
                 </ul>
             </div>
@@ -58,7 +58,7 @@
 
     <footer class="footer mt-5 py-3 bg-dark">
         <div class="container text-center text-muted">
-            <p>&copy; 2023 Shopify Product Uploader | <a href="https://github.com/shopify/shopify_api" target="_blank">Shopify API Docs</a></p>
+            <p>&copy; 2023 Shopify Product Uploader | <a href="https://shopify.dev/docs/api" target="_blank">Shopify API Docs</a></p>
         </div>
     </footer>
 

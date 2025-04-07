@@ -1,66 +1,81 @@
 import os
 import logging
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from datetime import datetime
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
 import pandas as pd
 from forms import UploadForm, ShopifySettingsForm
 from data_processor import process_data, validate_data
 from shopify_client import ShopifyClient
+from models import db, ShopifySettings, UploadHistory, ProductUploadResult
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Create the Flask app
-app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "shopify-uploader-secret-key")
+# Create a Blueprint instead of a Flask app
+app = Blueprint('main', __name__)
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls'}
 
 # Temporary storage for uploaded files
 UPLOAD_FOLDER = '/tmp'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Get upload history for display on the dashboard
+    recent_uploads = UploadHistory.query.order_by(UploadHistory.upload_date.desc()).limit(5).all()
+    return render_template('index.html', recent_uploads=recent_uploads)
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     form = ShopifySettingsForm()
     
+    # Get the active settings from the database if they exist
+    active_settings = ShopifySettings.query.filter_by(is_active=True).first()
+    
     if form.validate_on_submit():
-        # Store the Shopify settings in session
-        session['shopify_api_key'] = form.api_key.data
-        session['shopify_password'] = form.password.data
-        session['shopify_store_url'] = form.store_url.data
-        session['shopify_api_version'] = form.api_version.data
+        # Create new settings or update existing ones
+        if active_settings:
+            active_settings.api_key = form.api_key.data
+            active_settings.password = form.password.data
+            active_settings.store_url = form.store_url.data
+            active_settings.api_version = form.api_version.data
+            active_settings.last_used_at = datetime.utcnow()
+            db.session.commit()
+        else:
+            new_settings = ShopifySettings(
+                api_key=form.api_key.data,
+                password=form.password.data,
+                store_url=form.store_url.data,
+                api_version=form.api_version.data
+            )
+            db.session.add(new_settings)
+            db.session.commit()
         
         flash('Shopify settings saved successfully!', 'success')
-        return redirect(url_for('upload'))
+        return redirect(url_for('main.upload'))
     
     # Pre-fill the form with existing settings if available
-    if 'shopify_api_key' in session:
-        form.api_key.data = session['shopify_api_key']
-    if 'shopify_password' in session:
-        form.password.data = session['shopify_password']
-    if 'shopify_store_url' in session:
-        form.store_url.data = session['shopify_store_url']
-    if 'shopify_api_version' in session:
-        form.api_version.data = session['shopify_api_version']
+    if active_settings:
+        form.api_key.data = active_settings.api_key
+        form.password.data = active_settings.password
+        form.store_url.data = active_settings.store_url
+        form.api_version.data = active_settings.api_version
     
     return render_template('settings.html', form=form)
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
-    # Check if Shopify settings exist
-    if not all(key in session for key in ['shopify_api_key', 'shopify_password', 'shopify_store_url']):
+    # Check if Shopify settings exist in the database
+    active_settings = ShopifySettings.query.filter_by(is_active=True).first()
+    if not active_settings:
         flash('Please configure your Shopify API settings first.', 'warning')
-        return redirect(url_for('settings'))
+        return redirect(url_for('main.settings'))
     
     form = UploadForm()
     
@@ -68,12 +83,13 @@ def upload():
         file = form.file.data
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
             
             try:
                 # Process the file based on its extension
-                if filename.endswith('.csv'):
+                file_type = filename.rsplit('.', 1)[1].lower()
+                if file_type == 'csv':
                     df = pd.read_csv(filepath)
                 else:  # Excel file
                     df = pd.read_excel(filepath)
@@ -84,11 +100,22 @@ def upload():
                     flash(f"Data validation failed: {validation_result['errors']}", 'danger')
                     return render_template('upload.html', form=form)
                 
-                # Store the DataFrame in session for processing
+                # Create an upload history record
+                upload_history = UploadHistory(
+                    filename=filename,
+                    file_type=file_type,
+                    record_count=len(df),
+                    settings_id=active_settings.id
+                )
+                db.session.add(upload_history)
+                db.session.commit()
+                
+                # Store data for processing
                 session['file_path'] = filepath
+                session['upload_id'] = upload_history.id
                 
                 # Process the data and upload to Shopify
-                return redirect(url_for('process'))
+                return redirect(url_for('main.process'))
                 
             except Exception as e:
                 logger.error(f"Error processing file: {str(e)}")
@@ -102,18 +129,30 @@ def upload():
 @app.route('/process')
 def process():
     # Check if file path exists in session
-    if 'file_path' not in session:
+    if 'file_path' not in session or 'upload_id' not in session:
         flash('No file uploaded. Please upload a file first.', 'warning')
-        return redirect(url_for('upload'))
+        return redirect(url_for('main.upload'))
     
-    # Get Shopify credentials from session
-    api_key = session.get('shopify_api_key')
-    password = session.get('shopify_password')
-    store_url = session.get('shopify_store_url')
-    api_version = session.get('shopify_api_version', '2023-07')
+    # Get the upload history record
+    upload_id = session.get('upload_id')
+    upload_history = UploadHistory.query.get(upload_id)
+    if not upload_history:
+        flash('Upload record not found. Please try again.', 'danger')
+        return redirect(url_for('main.upload'))
+    
+    # Get the Shopify settings
+    active_settings = ShopifySettings.query.get(upload_history.settings_id)
+    if not active_settings:
+        flash('Shopify settings not found. Please configure your settings first.', 'danger')
+        return redirect(url_for('main.settings'))
     
     # Initialize Shopify client
-    shopify_client = ShopifyClient(api_key, password, store_url, api_version)
+    shopify_client = ShopifyClient(
+        active_settings.api_key,
+        active_settings.password,
+        active_settings.store_url,
+        active_settings.api_version
+    )
     
     try:
         # Read the file
@@ -126,38 +165,57 @@ def process():
         # Process and upload the data to Shopify
         results = process_data(df, shopify_client)
         
-        # Add SEO data to results for successful products
-        for result in results:
-            if result['status'] == 'success':
-                # Get the corresponding row from the dataframe
-                row_index = result['row'] - 2  # Adjust for 0-indexing and header
-                if 0 <= row_index < len(df):
-                    row_data = df.iloc[row_index]
-                    
-                    # Extract SEO-related fields
-                    seo_data = {
-                        'meta_title': row_data.get('meta_title', None),
-                        'meta_description': row_data.get('meta_description', None),
-                        'meta_keywords': row_data.get('meta_keywords', None),
-                        'url_handle': row_data.get('url_handle', None),
-                        'category_hierarchy': row_data.get('category_hierarchy', None),
-                        'tags': row_data.get('tags', '')
-                    }
-                    
-                    # Only include SEO data if at least one field is present
-                    if any(value for value in seo_data.values() if value is not None):
-                        result['seo_data'] = seo_data
+        # Update the upload history with success/error counts
+        success_count = sum(1 for result in results if result['status'] == 'success')
+        error_count = sum(1 for result in results if result['status'] == 'error')
         
-        # Remove the file path from session
+        upload_history.success_count = success_count
+        upload_history.error_count = error_count
+        db.session.commit()
+        
+        # Store the results in the database
+        for result in results:
+            row_number = result.get('row', 0)
+            row_index = row_number - 2  # Adjust for 0-indexing and header
+            
+            # Extract SEO data from the row if it exists
+            seo_data = {}
+            if 0 <= row_index < len(df):
+                row_data = df.iloc[row_index]
+                seo_data = {
+                    'meta_title': row_data.get('meta_title', None),
+                    'meta_description': row_data.get('meta_description', None),
+                    'meta_keywords': row_data.get('meta_keywords', None),
+                    'url_handle': row_data.get('url_handle', None),
+                    'category_hierarchy': row_data.get('category_hierarchy', None)
+                }
+            
+            # Create a product upload result record
+            product_result = ProductUploadResult(
+                upload_id=upload_id,
+                product_title=result.get('product_title', 'Unknown'),
+                status=result.get('status', 'unknown'),
+                message=result.get('message', ''),
+                row_number=row_number,
+                shopify_product_id=result.get('product_id', None),
+                meta_title=seo_data.get('meta_title'),
+                meta_description=seo_data.get('meta_description'),
+                meta_keywords=seo_data.get('meta_keywords'),
+                url_handle=seo_data.get('url_handle'),
+                category_hierarchy=seo_data.get('category_hierarchy')
+            )
+            db.session.add(product_result)
+        
+        db.session.commit()
+        
+        # Clean up session data
         session.pop('file_path', None)
+        session.pop('upload_id', None)
         
         # Render the results page
-        return render_template('results.html', results=results)
+        return render_template('results.html', results=results, upload=upload_history)
         
     except Exception as e:
         logger.error(f"Error processing data: {str(e)}")
         flash(f'Error processing data: {str(e)}', 'danger')
-        return redirect(url_for('upload'))
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+        return redirect(url_for('main.upload'))
