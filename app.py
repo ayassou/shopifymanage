@@ -1483,6 +1483,32 @@ def api_dropshipping_discover_niches():
 # Store Agent Routes
 # =====================================
 
+@app.route('/api/stores', methods=['GET'])
+def api_get_stores():
+    """API endpoint for getting all stores"""
+    try:
+        # Get all stores from the database
+        stores = StoreSetup.query.all()
+        
+        # Convert to list of dictionaries
+        stores_data = []
+        for store in stores:
+            stores_data.append({
+                'id': store.id,
+                'name': store.store_name,
+                'store_url': store.store_url,
+                'status': store.status,
+                'theme_id': store.theme_id,
+                'created_at': store.created_at.isoformat() if store.created_at else None,
+                'updated_at': store.updated_at.isoformat() if store.updated_at else None
+            })
+        
+        return jsonify(stores_data)
+    
+    except Exception as e:
+        logger.error(f"Error in get stores API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
 @app.route('/api/store/create', methods=['POST'])
 def api_store_create():
     """API endpoint for creating a store"""
