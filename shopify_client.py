@@ -28,10 +28,8 @@ class ShopifyClient:
         self.base_url = f'{self.store_url}/admin/api/{self.api_version}'
         
         # Set up authentication
-        auth_str = f"{self.api_key}:{self.password}"
-        self.auth_header = b64encode(auth_str.encode()).decode()
         self.headers = {
-            'Authorization': f'Basic {self.auth_header}',
+            'X-Shopify-Access-Token': self.password,
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
