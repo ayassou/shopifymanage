@@ -17,4 +17,5 @@ dependencies = [
     "pandas>=2.2.3",
     "openai>=1.70.0",
     "sqlalchemy>=2.0.40",
+    "trafilatura>=2.0.0",
 ]
