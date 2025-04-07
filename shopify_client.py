@@ -26,7 +26,7 @@ class ShopifyClient:
         if not self.store_url.startswith('https://'):
             self.store_url = f'https://{self.store_url}'
         self.api_version = api_version
-        self.base_url = f'{self.store_url}/admin/api/{self.api_version}'
+        self.base_url = f'{self.store_url}/admin/api/{self.api_version}/graphql'
         if not self.base_url.endswith('/'):
             self.base_url += '/'
 
@@ -89,8 +89,19 @@ class ShopifyClient:
     def test_connection(self):
         """Test the connection to the Shopify API"""
         try:
-            response = self._make_request('GET', 'shop.json')
-            return True, response
+            query = """
+            {
+              shop {
+                name
+                email
+                myshopifyDomain
+              }
+            }
+            """
+            response = self._make_request('POST', '', data={'query': query})
+            if 'data' in response and 'shop' in response['data']:
+                return True, {'shop': response['data']['shop']}
+            return False, 'Invalid API response'
         except Exception as e:
             return False, str(e)
 
