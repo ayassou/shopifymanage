@@ -8,6 +8,34 @@ from urllib.parse import urljoin, urlparse
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+def get_website_text_content(url):
+    """
+    Extract the main text content from a website.
+    
+    Args:
+        url (str): The URL of the website
+        
+    Returns:
+        str: The extracted text content
+    """
+    try:
+        # Download the website content
+        downloaded = trafilatura.fetch_url(url)
+        if not downloaded:
+            logger.warning(f"Failed to download content from {url}")
+            return ""
+        
+        # Extract the main text content
+        text = trafilatura.extract(downloaded)
+        if not text:
+            logger.warning(f"Failed to extract text content from {url}")
+            return ""
+        
+        return text
+    except Exception as e:
+        logger.error(f"Error extracting text content from {url}: {str(e)}")
+        return ""
+
 class ProductScraper:
     """
     A class for scraping product data from e-commerce websites.

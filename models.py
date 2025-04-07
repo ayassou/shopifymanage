@@ -1,5 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from datetime import datetime
+from sqlalchemy import Float, Text, JSON
 
 # Initialize SQLAlchemy
 db = SQLAlchemy()
@@ -240,3 +242,208 @@ class ImageItem(db.Model):
     
     def __repr__(self):
         return f'<ImageItem {self.filename or self.url[:30]}>'
+
+class User(UserMixin, db.Model):
+    """Model for user authentication"""
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256))
+    
+    def __repr__(self):
+        return f'<User {self.username}>'
+
+# Dropshipping Agent Models
+class TrendAnalysis(db.Model):
+    """Model for storing trend analysis data"""
+    id = db.Column(db.Integer, primary_key=True)
+    source = db.Column(db.String(100), nullable=False)  # 'aliexpress', 'amazon', 'tiktok', etc.
+    keyword = db.Column(db.String(200), nullable=False)
+    search_volume = db.Column(db.Integer, nullable=True)
+    growth_rate = db.Column(db.Float, nullable=True)  # percentage growth
+    competition_level = db.Column(db.Float, nullable=True)  # 0-1 scale
+    seasonality = db.Column(db.String(100), nullable=True)  # 'all-year', 'summer', 'winter', etc.
+    data_json = db.Column(JSON, nullable=True)  # Additional data in JSON format
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    products = db.relationship('ProductSource', backref='trend', lazy=True)
+    
+    def __repr__(self):
+        return f'<TrendAnalysis {self.keyword} - {self.source}>'
+
+class ProductSource(db.Model):
+    """Model for storing sourced product information"""
+    id = db.Column(db.Integer, primary_key=True)
+    trend_id = db.Column(db.Integer, db.ForeignKey('trend_analysis.id'), nullable=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(Text, nullable=True)
+    source_url = db.Column(db.String(512), nullable=True)
+    source_platform = db.Column(db.String(100), nullable=True)  # 'aliexpress', 'alibaba', etc.
+    price = db.Column(db.Float, nullable=True)
+    shipping_cost = db.Column(db.Float, nullable=True)
+    shipping_time = db.Column(db.Integer, nullable=True)  # in days
+    profit_margin = db.Column(db.Float, nullable=True)
+    moq = db.Column(db.Integer, nullable=True)  # Minimum Order Quantity
+    rating = db.Column(db.Float, nullable=True)  # Supplier rating
+    weight = db.Column(db.Float, nullable=True)  # in kg
+    dimensions = db.Column(db.String(100), nullable=True)  # format: "LxWxH" in cm
+    image_urls = db.Column(JSON, nullable=True)  # Array of image URLs as JSON
+    is_trending = db.Column(db.Boolean, default=False)
+    is_seasonal = db.Column(db.Boolean, default=False)
+    data_json = db.Column(JSON, nullable=True)  # Additional data in JSON format
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    evaluations = db.relationship('ProductEvaluation', backref='product_source', lazy=True)
+    
+    def __repr__(self):
+        return f'<ProductSource {self.name} - {self.source_platform}>'
+    
+class ProductEvaluation(db.Model):
+    """Model for evaluating product suitability for dropshipping"""
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product_source.id'), nullable=False)
+    dropshipping_score = db.Column(db.Float, nullable=True)  # 0-100 scale
+    market_saturation = db.Column(db.Float, nullable=True)  # 0-1 scale
+    shipping_complexity = db.Column(db.Float, nullable=True)  # 0-1 scale
+    return_risk = db.Column(db.Float, nullable=True)  # 0-1 scale
+    profit_potential = db.Column(db.Float, nullable=True)  # 0-1 scale
+    overall_recommendation = db.Column(db.String(50), nullable=True)  # 'highly_recommended', 'recommended', 'neutral', 'not_recommended', 'avoid'
+    evaluation_notes = db.Column(Text, nullable=True)
+    data_json = db.Column(JSON, nullable=True)  # Additional data in JSON format
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<ProductEvaluation {self.product_id} - {self.overall_recommendation}>'
+
+class NicheAnalysis(db.Model):
+    """Model for niche market analysis"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(Text, nullable=True)
+    main_keywords = db.Column(JSON, nullable=True)  # Array of keywords as JSON
+    search_volume = db.Column(db.Integer, nullable=True)
+    competition_level = db.Column(db.Float, nullable=True)  # 0-1 scale
+    growth_potential = db.Column(db.Float, nullable=True)  # 0-1 scale
+    recommended_products = db.Column(JSON, nullable=True)  # Array of product IDs as JSON
+    audience_demographics = db.Column(JSON, nullable=True)  # Demographic data as JSON
+    marketing_channels = db.Column(JSON, nullable=True)  # Recommended channels as JSON
+    evaluation_notes = db.Column(Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<NicheAnalysis {self.name}>'
+
+# Store Agent Models
+class StoreSetup(db.Model):
+    """Model for store setup and configuration"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    settings_id = db.Column(db.Integer, db.ForeignKey('shopify_settings.id'), nullable=True)
+    store_name = db.Column(db.String(255), nullable=False)
+    store_url = db.Column(db.String(512), nullable=False)
+    niche = db.Column(db.String(200), nullable=True)
+    logo_url = db.Column(db.String(512), nullable=True)
+    theme_id = db.Column(db.String(100), nullable=True)
+    currency = db.Column(db.String(3), nullable=True)
+    status = db.Column(db.String(50), default='pending')  # 'pending', 'in_progress', 'completed', 'failed'
+    settings_json = db.Column(JSON, nullable=True)  # Store settings as JSON
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    store_pages = db.relationship('StorePage', backref='store', lazy=True)
+    store_products = db.relationship('StoreProduct', backref='store', lazy=True)
+    
+    # Relationships
+    settings = db.relationship('ShopifySettings', backref=db.backref('stores', lazy=True))
+    user = db.relationship('User', backref=db.backref('stores', lazy=True))
+    
+    def __repr__(self):
+        return f'<StoreSetup {self.store_name} - {self.status}>'
+
+class StorePage(db.Model):
+    """Model for store pages"""
+    id = db.Column(db.Integer, primary_key=True)
+    store_id = db.Column(db.Integer, db.ForeignKey('store_setup.id'), nullable=False)
+    page_type = db.Column(db.String(50), nullable=False)  # 'home', 'about', 'contact', 'policy', 'blog', etc.
+    title = db.Column(db.String(255), nullable=False)
+    content = db.Column(Text, nullable=True)
+    meta_title = db.Column(db.String(255), nullable=True)
+    meta_description = db.Column(db.String(512), nullable=True)
+    is_published = db.Column(db.Boolean, default=False)
+    shopify_page_id = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<StorePage {self.title} - {self.page_type}>'
+
+class StoreProduct(db.Model):
+    """Model for store products"""
+    id = db.Column(db.Integer, primary_key=True)
+    store_id = db.Column(db.Integer, db.ForeignKey('store_setup.id'), nullable=False)
+    product_source_id = db.Column(db.Integer, db.ForeignKey('product_source.id'), nullable=True)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(Text, nullable=True)
+    price = db.Column(db.Float, nullable=False)
+    compare_at_price = db.Column(db.Float, nullable=True)
+    sku = db.Column(db.String(100), nullable=True)
+    inventory_quantity = db.Column(db.Integer, default=999)
+    weight = db.Column(db.Float, nullable=True)
+    requires_shipping = db.Column(db.Boolean, default=True)
+    images = db.Column(JSON, nullable=True)  # Array of image URLs/data as JSON
+    variants = db.Column(JSON, nullable=True)  # Product variants as JSON
+    tags = db.Column(JSON, nullable=True)  # Array of tags as JSON
+    seo_title = db.Column(db.String(255), nullable=True)
+    seo_description = db.Column(db.String(512), nullable=True)
+    status = db.Column(db.String(50), default='draft')  # 'draft', 'active', 'archived'
+    shopify_product_id = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    product_source = db.relationship('ProductSource', backref=db.backref('store_products', lazy=True))
+    
+    def __repr__(self):
+        return f'<StoreProduct {self.title} - {self.status}>'
+
+class ThemeCustomization(db.Model):
+    """Model for theme customization settings"""
+    id = db.Column(db.Integer, primary_key=True)
+    store_id = db.Column(db.Integer, db.ForeignKey('store_setup.id'), nullable=False)
+    theme_id = db.Column(db.String(100), nullable=False)
+    primary_color = db.Column(db.String(20), nullable=True)
+    secondary_color = db.Column(db.String(20), nullable=True)
+    font_heading = db.Column(db.String(100), nullable=True)
+    font_body = db.Column(db.String(100), nullable=True)
+    logo_position = db.Column(db.String(50), nullable=True)
+    hero_layout = db.Column(db.String(50), nullable=True)
+    home_page_sections = db.Column(JSON, nullable=True)  # Sections configuration as JSON
+    collection_layout = db.Column(db.String(50), nullable=True)
+    product_page_layout = db.Column(db.String(50), nullable=True)
+    settings_json = db.Column(JSON, nullable=True)  # Additional settings as JSON
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<ThemeCustomization {self.store_id} - {self.theme_id}>'
+
+# Agent Process Tracking
+class AgentTask(db.Model):
+    """Model for tracking agent tasks"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    task_type = db.Column(db.String(100), nullable=False)  # 'trend_analysis', 'product_sourcing', 'store_setup', etc.
+    status = db.Column(db.String(50), default='pending')  # 'pending', 'running', 'completed', 'failed'
+    progress = db.Column(db.Integer, default=0)  # 0-100 percent
+    result_id = db.Column(db.Integer, nullable=True)  # ID of the result object (depends on task_type)
+    result_type = db.Column(db.String(100), nullable=True)  # Model name of the result
+    error_message = db.Column(db.Text, nullable=True)
+    parameters = db.Column(JSON, nullable=True)  # Task parameters as JSON
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('agent_tasks', lazy=True))
+    
+    def __repr__(self):
+        return f'<AgentTask {self.task_type} - {self.status}>'

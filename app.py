@@ -4,7 +4,7 @@ import time
 import json
 import tempfile
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_file, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_file, Response, jsonify
 from werkzeug.utils import secure_filename
 import pandas as pd
 from forms import UploadForm, ShopifySettingsForm, AISettingsForm, AIGeneratorForm, BlogPostGeneratorForm, PageGeneratorForm, ImageCaptionGeneratorForm
@@ -13,6 +13,9 @@ from shopify_client import ShopifyClient
 from ai_service import AIService
 from web_scraper import ProductScraper
 from models import db, ShopifySettings, AISettings, UploadHistory, ProductUploadResult, BlogPost, PageContent, ImageBatch, ImageItem
+from models import TrendAnalysis, ProductSource, ProductEvaluation, NicheAnalysis, AgentTask
+from models import StoreSetup, StorePage, StoreProduct, ThemeCustomization
+from agents import DropshippingAgent, StoreAgent
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -1397,3 +1400,394 @@ def download_image_captions(batch_id):
         as_attachment=True,
         download_name=f'image_captions_batch_{batch_id}.csv'
     )
+
+# =====================================
+# Dropshipping Agent Routes
+# =====================================
+
+@app.route('/api/dropshipping/trend-analysis', methods=['POST'])
+def api_dropshipping_trend_analysis():
+    """API endpoint for starting trend analysis"""
+    # Get request data
+    data = request.json or {}
+    sources = data.get('sources', [])
+    keywords = data.get('keywords', [])
+    
+    # Create the agent
+    agent = DropshippingAgent()
+    
+    # Start the analysis
+    try:
+        result = agent.start_trend_analysis(sources=sources, keywords=keywords)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in trend analysis API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/api/dropshipping/source-products', methods=['POST'])
+def api_dropshipping_source_products():
+    """API endpoint for product sourcing"""
+    # Get request data
+    data = request.json or {}
+    trend_ids = data.get('trend_ids', [])
+    urls = data.get('urls', [])
+    
+    # Create the agent
+    agent = DropshippingAgent()
+    
+    # Start the product sourcing
+    try:
+        result = agent.source_products(trend_ids=trend_ids, urls=urls)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in product sourcing API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/api/dropshipping/evaluate-products', methods=['POST'])
+def api_dropshipping_evaluate_products():
+    """API endpoint for product evaluation"""
+    # Get request data
+    data = request.json or {}
+    product_ids = data.get('product_ids', [])
+    
+    # Create the agent
+    agent = DropshippingAgent()
+    
+    # Start the product evaluation
+    try:
+        result = agent.evaluate_products(product_ids=product_ids)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in product evaluation API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/api/dropshipping/discover-niches', methods=['POST'])
+def api_dropshipping_discover_niches():
+    """API endpoint for niche discovery"""
+    # Get request data
+    data = request.json or {}
+    keywords = data.get('keywords', [])
+    
+    # Create the agent
+    agent = DropshippingAgent()
+    
+    # Start the niche discovery
+    try:
+        result = agent.discover_niches(keywords=keywords)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in niche discovery API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+# =====================================
+# Store Agent Routes
+# =====================================
+
+@app.route('/api/store/create', methods=['POST'])
+def api_store_create():
+    """API endpoint for creating a store"""
+    # Get request data
+    data = request.json or {}
+    store_params = data.get('store_params', {})
+    user_id = data.get('user_id')
+    settings_id = data.get('settings_id')
+    
+    # Get Shopify and AI settings
+    shopify_settings = None
+    if settings_id:
+        shopify_settings = ShopifySettings.query.get(settings_id)
+    else:
+        shopify_settings = ShopifySettings.query.filter_by(is_active=True).first()
+    
+    if not shopify_settings:
+        return jsonify({'status': 'error', 'error': 'No Shopify settings available'}), 400
+    
+    ai_settings = AISettings.query.filter_by(is_active=True).first()
+    
+    # Create the agents
+    shopify_client = ShopifyClient(
+        shopify_settings.api_key,
+        shopify_settings.password,
+        shopify_settings.store_url,
+        shopify_settings.api_version
+    )
+    
+    ai_service = None
+    if ai_settings:
+        ai_service = AIService(api_key=ai_settings.api_key, api_provider=ai_settings.api_provider)
+    
+    store_agent = StoreAgent(shopify_client=shopify_client, ai_service=ai_service)
+    
+    # Create the store
+    try:
+        result = store_agent.create_store(
+            store_params=store_params,
+            user_id=user_id,
+            settings_id=settings_id or shopify_settings.id
+        )
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in store creation API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/api/store/add-products', methods=['POST'])
+def api_store_add_products():
+    """API endpoint for adding products to a store"""
+    # Get request data
+    data = request.json or {}
+    store_id = data.get('store_id')
+    product_ids = data.get('product_ids', [])
+    product_sources = data.get('product_sources', [])
+    
+    # Validate store ID
+    if not store_id:
+        return jsonify({'status': 'error', 'error': 'Store ID is required'}), 400
+    
+    # Check if store exists
+    store = StoreSetup.query.get(store_id)
+    if not store:
+        return jsonify({'status': 'error', 'error': f'Store with ID {store_id} not found'}), 404
+    
+    # Get Shopify and AI settings
+    shopify_settings = ShopifySettings.query.get(store.settings_id)
+    if not shopify_settings:
+        return jsonify({'status': 'error', 'error': 'No Shopify settings available for this store'}), 400
+    
+    ai_settings = AISettings.query.filter_by(is_active=True).first()
+    
+    # Create the agents
+    shopify_client = ShopifyClient(
+        shopify_settings.api_key,
+        shopify_settings.password,
+        shopify_settings.store_url,
+        shopify_settings.api_version
+    )
+    
+    ai_service = None
+    if ai_settings:
+        ai_service = AIService(api_key=ai_settings.api_key, api_provider=ai_settings.api_provider)
+    
+    store_agent = StoreAgent(shopify_client=shopify_client, ai_service=ai_service)
+    
+    # Add products
+    try:
+        result = store_agent.add_products(
+            store_id=store_id,
+            product_ids=product_ids,
+            product_sources=product_sources
+        )
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in adding products API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/api/store/theme-customize', methods=['POST'])
+def api_store_customize_theme():
+    """API endpoint for customizing store theme"""
+    # Get request data
+    data = request.json or {}
+    store_id = data.get('store_id')
+    theme_settings = data.get('theme_settings', {})
+    
+    # Validate store ID
+    if not store_id:
+        return jsonify({'status': 'error', 'error': 'Store ID is required'}), 400
+    
+    # Check if store exists
+    store = StoreSetup.query.get(store_id)
+    if not store:
+        return jsonify({'status': 'error', 'error': f'Store with ID {store_id} not found'}), 404
+    
+    # Get Shopify and AI settings
+    shopify_settings = ShopifySettings.query.get(store.settings_id)
+    if not shopify_settings:
+        return jsonify({'status': 'error', 'error': 'No Shopify settings available for this store'}), 400
+    
+    ai_settings = AISettings.query.filter_by(is_active=True).first()
+    
+    # Create the agents
+    shopify_client = ShopifyClient(
+        shopify_settings.api_key,
+        shopify_settings.password,
+        shopify_settings.store_url,
+        shopify_settings.api_version
+    )
+    
+    ai_service = None
+    if ai_settings:
+        ai_service = AIService(api_key=ai_settings.api_key, api_provider=ai_settings.api_provider)
+    
+    store_agent = StoreAgent(shopify_client=shopify_client, ai_service=ai_service)
+    
+    # Customize theme
+    try:
+        result = store_agent.customize_theme(
+            store_id=store_id,
+            theme_settings=theme_settings
+        )
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in theme customization API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/api/store/publish', methods=['POST'])
+def api_store_publish():
+    """API endpoint for publishing store content (products and pages)"""
+    # Get request data
+    data = request.json or {}
+    store_id = data.get('store_id')
+    publish_products = data.get('publish_products', True)
+    publish_pages = data.get('publish_pages', True)
+    product_ids = data.get('product_ids', [])  # Optional specific product IDs
+    page_ids = data.get('page_ids', [])  # Optional specific page IDs
+    
+    # Validate store ID
+    if not store_id:
+        return jsonify({'status': 'error', 'error': 'Store ID is required'}), 400
+    
+    # Check if store exists
+    store = StoreSetup.query.get(store_id)
+    if not store:
+        return jsonify({'status': 'error', 'error': f'Store with ID {store_id} not found'}), 404
+    
+    # Get Shopify and AI settings
+    shopify_settings = ShopifySettings.query.get(store.settings_id)
+    if not shopify_settings:
+        return jsonify({'status': 'error', 'error': 'No Shopify settings available for this store'}), 400
+    
+    ai_settings = AISettings.query.filter_by(is_active=True).first()
+    
+    # Create the agents
+    shopify_client = ShopifyClient(
+        shopify_settings.api_key,
+        shopify_settings.password,
+        shopify_settings.store_url,
+        shopify_settings.api_version
+    )
+    
+    ai_service = None
+    if ai_settings:
+        ai_service = AIService(api_key=ai_settings.api_key, api_provider=ai_settings.api_provider)
+    
+    store_agent = StoreAgent(shopify_client=shopify_client, ai_service=ai_service)
+    
+    # Publish content
+    results = {}
+    try:
+        if publish_products:
+            product_result = store_agent.publish_products(
+                store_id=store_id,
+                product_ids=product_ids if product_ids else None
+            )
+            results['products'] = product_result
+            
+        if publish_pages:
+            page_result = store_agent.publish_pages(
+                store_id=store_id,
+                page_ids=page_ids if page_ids else None
+            )
+            results['pages'] = page_result
+            
+        return jsonify({
+            'status': 'completed',
+            'results': results
+        })
+    except Exception as e:
+        logger.error(f"Error in publishing store content API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/api/store/from-dropshipping', methods=['POST'])
+def api_store_from_dropshipping():
+    """API endpoint for creating a complete store from dropshipping results"""
+    # Get request data
+    data = request.json or {}
+    niche_id = data.get('niche_id')
+    product_ids = data.get('product_ids', [])
+    user_id = data.get('user_id')
+    settings_id = data.get('settings_id')
+    store_name = data.get('store_name')
+    
+    # Get Shopify and AI settings
+    shopify_settings = None
+    if settings_id:
+        shopify_settings = ShopifySettings.query.get(settings_id)
+    else:
+        shopify_settings = ShopifySettings.query.filter_by(is_active=True).first()
+    
+    if not shopify_settings:
+        return jsonify({'status': 'error', 'error': 'No Shopify settings available'}), 400
+    
+    ai_settings = AISettings.query.filter_by(is_active=True).first()
+    
+    # Create the agents
+    shopify_client = ShopifyClient(
+        shopify_settings.api_key,
+        shopify_settings.password,
+        shopify_settings.store_url,
+        shopify_settings.api_version
+    )
+    
+    ai_service = None
+    if ai_settings:
+        ai_service = AIService(api_key=ai_settings.api_key, api_provider=ai_settings.api_provider)
+    
+    store_agent = StoreAgent(shopify_client=shopify_client, ai_service=ai_service)
+    
+    # Create the store from dropshipping results
+    try:
+        result = store_agent.create_store_from_dropshipping_results(
+            niche_id=niche_id,
+            product_ids=product_ids,
+            user_id=user_id,
+            settings_id=settings_id or shopify_settings.id,
+            store_name=store_name
+        )
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error in creating store from dropshipping results API: {str(e)}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+# Status endpoints for agent tasks
+@app.route('/api/agent-task/<int:task_id>', methods=['GET'])
+def api_agent_task_status(task_id):
+    """API endpoint to get the status of an agent task"""
+    task = AgentTask.query.get(task_id)
+    
+    if not task:
+        return jsonify({'status': 'error', 'error': f'Task with ID {task_id} not found'}), 404
+    
+    response = {
+        'id': task.id,
+        'task_type': task.task_type,
+        'status': task.status,
+        'progress': task.progress,
+        'created_at': task.created_at.isoformat(),
+        'updated_at': task.updated_at.isoformat()
+    }
+    
+    # Include error message if task failed
+    if task.status == 'failed' and task.error_message:
+        response['error'] = task.error_message
+    
+    # Include result information if available
+    if task.result_id and task.result_type:
+        response['result'] = {
+            'type': task.result_type,
+            'id': task.result_id
+        }
+    
+    return jsonify(response)
+
+# =====================================
+# Agent UI Routes
+# =====================================
+
+@app.route('/dropshipping', methods=['GET'])
+def dropshipping_page():
+    """Render the dropshipping agent interface"""
+    return render_template('dropshipping.html')
+
+@app.route('/store-agent', methods=['GET'])
+def store_agent_page():
+    """Render the store agent interface"""
+    return render_template('store_agent.html')

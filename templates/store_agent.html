@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+
+{% block title %}Store Agent{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Store Agent</h1>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">Create New Store</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Set up a new Shopify store with automated theme setup and essential pages.</p>
+                    <form id="store-creation-form">
+                        <div class="mb-3">
+                            <label for="store-name" class="form-label">Store Name</label>
+                            <input type="text" class="form-control" id="store-name" placeholder="e.g. Modern Home Goods">
+                        </div>
+                        <div class="mb-3">
+                            <label for="business-type" class="form-label">Business Type</label>
+                            <select class="form-select" id="business-type">
+                                <option value="home_goods">Home Goods</option>
+                                <option value="fashion">Fashion & Apparel</option>
+                                <option value="electronics">Electronics</option>
+                                <option value="beauty">Beauty & Cosmetics</option>
+                                <option value="health">Health & Wellness</option>
+                                <option value="food">Food & Beverage</option>
+                                <option value="pet">Pet Supplies</option>
+                                <option value="sports">Sports & Fitness</option>
+                                <option value="toys">Toys & Games</option>
+                                <option value="art">Art & Crafts</option>
+                                <option value="jewelry">Jewelry & Accessories</option>
+                                <option value="baby">Baby & Children</option>
+                                <option value="outdoor">Outdoor & Garden</option>
+                                <option value="books">Books & Media</option>
+                                <option value="office">Office Supplies</option>
+                                <option value="auto">Automotive</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="theme-id" class="form-label">Theme</label>
+                            <select class="form-select" id="theme-id">
+                                <option value="dawn">Dawn (Recommended)</option>
+                                <option value="debut">Debut</option>
+                                <option value="brooklyn">Brooklyn</option>
+                                <option value="venture">Venture</option>
+                                <option value="narrative">Narrative</option>
+                                <option value="supply">Supply</option>
+                                <option value="minimal">Minimal</option>
+                                <option value="simple">Simple</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Store</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">Store from Dropshipping Results</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Create a complete store based on dropshipping agent results.</p>
+                    <form id="dropshipping-store-form">
+                        <div class="mb-3">
+                            <label for="niche-id" class="form-label">Niche ID</label>
+                            <input type="number" class="form-control" id="niche-id" placeholder="e.g. 123">
+                        </div>
+                        <div class="mb-3">
+                            <label for="product-ids" class="form-label">Product IDs (comma separated)</label>
+                            <input type="text" class="form-control" id="product-ids" placeholder="e.g. 1,2,3,4">
+                        </div>
+                        <div class="mb-3">
+                            <label for="ds-store-name" class="form-label">Store Name (optional)</label>
+                            <input type="text" class="form-control" id="ds-store-name" placeholder="e.g. TrendyDrops">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Store</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">Your Stores</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table" id="stores-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Stores will be loaded here -->
+                                <tr>
+                                    <td colspan="5" class="text-center">No stores available</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">Agent Tasks</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table" id="store-tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Tasks will be loaded here -->
+                                <tr>
+                                    <td colspan="5" class="text-center">No tasks available</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Store Details Modal -->
+    <div class="modal fade" id="store-details-modal" tabindex="-1" aria-labelledby="store-details-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="store-details-modal-label">Store Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="store-details-content">
+                    <!-- Store details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Store Creation Form
+        document.getElementById('store-creation-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const storeName = document.getElementById('store-name').value;
+            const businessType = document.getElementById('business-type').value;
+            const themeId = document.getElementById('theme-id').value;
+            
+            if (!storeName) {
+                alert('Please enter a store name');
+                return;
+            }
+            
+            const storeParams = {
+                name: storeName,
+                business_type: businessType,
+                theme_id: themeId
+            };
+            
+            fetch('/api/store/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    store_params: storeParams
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('Store creation task started. Task ID: ' + data.task_id);
+                    pollTaskStatus(data.task_id);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+        
+        // Dropshipping Store Form
+        document.getElementById('dropshipping-store-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nicheId = document.getElementById('niche-id').value;
+            const productIds = document.getElementById('product-ids').value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+            const storeName = document.getElementById('ds-store-name').value;
+            
+            if (!nicheId) {
+                alert('Please enter a niche ID');
+                return;
+            }
+            
+            if (productIds.length === 0) {
+                alert('Please enter at least one product ID');
+                return;
+            }
+            
+            fetch('/api/store/from-dropshipping', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    niche_id: parseInt(nicheId),
+                    product_ids: productIds,
+                    store_name: storeName || null
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    alert('Error: ' + data.error);
+                } else {
+                    alert('Store creation task started. Task ID: ' + data.task_id);
+                    pollTaskStatus(data.task_id);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+        
+        // Poll task status
+        function pollTaskStatus(taskId) {
+            const interval = setInterval(() => {
+                fetch(`/api/agent-task/${taskId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateTasksTable(data);
+                        
+                        if (data.status === 'completed' || data.status === 'failed') {
+                            clearInterval(interval);
+                            
+                            if (data.status === 'completed' && data.result) {
+                                loadStores(); // Refresh the stores list
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error polling task status:', error);
+                        clearInterval(interval);
+                    });
+            }, 2000);
+        }
+        
+        // Update tasks table
+        function updateTasksTable(task) {
+            const tbody = document.querySelector('#store-tasks-table tbody');
+            
+            // Remove "No tasks available" row if present
+            const noTasksRow = tbody.querySelector('tr td[colspan="5"]');
+            if (noTasksRow) {
+                tbody.innerHTML = '';
+            }
+            
+            // Check if the task row already exists
+            let row = document.getElementById(`store-task-row-${task.id}`);
+            
+            if (!row) {
+                // Create a new row if it doesn't exist
+                row = document.createElement('tr');
+                row.id = `store-task-row-${task.id}`;
+                tbody.prepend(row);
+            }
+            
+            // Format date
+            const createdDate = new Date(task.created_at);
+            const formattedDate = createdDate.toLocaleString();
+            
+            // Update the row content
+            row.innerHTML = `
+                <td>${task.id}</td>
+                <td>${formatTaskType(task.task_type)}</td>
+                <td>
+                    <span class="badge rounded-pill ${getStatusBadgeClass(task.status)}">
+                        ${task.status}
+                    </span>
+                </td>
+                <td>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: ${task.progress}%;" 
+                            aria-valuenow="${task.progress}" aria-valuemin="0" aria-valuemax="100">
+                            ${task.progress}%
+                        </div>
+                    </div>
+                </td>
+                <td>${formattedDate}</td>
+            `;
+        }
+        
+        function formatTaskType(taskType) {
+            return taskType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+        
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case 'completed':
+                    return 'bg-success';
+                case 'failed':
+                    return 'bg-danger';
+                case 'processing':
+                    return 'bg-primary';
+                case 'pending':
+                    return 'bg-warning';
+                default:
+                    return 'bg-secondary';
+            }
+        }
+        
+        // Load stores
+        function loadStores() {
+            // In a real implementation, this would fetch stores from a backend API
+            // For demonstration, we'll just keep the existing table content
+            
+            // Example implementation:
+            /*
+            fetch('/api/stores')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.querySelector('#stores-table tbody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No stores available</td></tr>';
+                        return;
+                    }
+                    
+                    data.forEach(store => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${store.id}</td>
+                            <td>${store.name}</td>
+                            <td>
+                                <span class="badge rounded-pill ${getStatusBadgeClass(store.status)}">
+                                    ${store.status}
+                                </span>
+                            </td>
+                            <td>${new Date(store.created_at).toLocaleString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary view-store" data-store-id="${store.id}">
+                                    View
+                                </button>
+                                <button class="btn btn-sm btn-success view-store-on-shopify" data-store-url="${store.url}">
+                                    Open Store
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    // Add event listeners to buttons
+                    document.querySelectorAll('.view-store').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const storeId = this.getAttribute('data-store-id');
+                            viewStoreDetails(storeId);
+                        });
+                    });
+                    
+                    document.querySelectorAll('.view-store-on-shopify').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const storeUrl = this.getAttribute('data-store-url');
+                            window.open(storeUrl, '_blank');
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading stores:', error);
+                });
+            */
+        }
+        
+        // View store details
+        function viewStoreDetails(storeId) {
+            // In a real implementation, this would fetch store details from a backend API
+            // For demonstration, we'll just display some placeholder content
+            
+            const storeDetailsContent = document.getElementById('store-details-content');
+            storeDetailsContent.innerHTML = `
+                <div class="alert alert-info">
+                    Loading store details for store ID ${storeId}...
+                </div>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('store-details-modal'));
+            modal.show();
+            
+            // Example implementation:
+            /*
+            fetch(`/api/stores/${storeId}`)
+                .then(response => response.json())
+                .then(store => {
+                    storeDetailsContent.innerHTML = `
+                        <h4>${store.name}</h4>
+                        <p><strong>Status:</strong> ${store.status}</p>
+                        <p><strong>Created:</strong> ${new Date(store.created_at).toLocaleString()}</p>
+                        <p><strong>URL:</strong> <a href="${store.url}" target="_blank">${store.url}</a></p>
+                        
+                        <h5 class="mt-4">Products</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${store.products.map(product => `
+                                        <tr>
+                                            <td>${product.id}</td>
+                                            <td>${product.title}</td>
+                                            <td>
+                                                <span class="badge rounded-pill ${getStatusBadgeClass(product.status)}">
+                                                    ${product.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="${product.url}" target="_blank" class="btn btn-sm btn-primary">
+                                                    View on Shopify
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <h5 class="mt-4">Pages</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${store.pages.map(page => `
+                                        <tr>
+                                            <td>${page.id}</td>
+                                            <td>${page.title}</td>
+                                            <td>
+                                                <span class="badge rounded-pill ${getStatusBadgeClass(page.status)}">
+                                                    ${page.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="${page.url}" target="_blank" class="btn btn-sm btn-primary">
+                                                    View on Shopify
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <h5 class="mt-4">Theme Settings</h5>
+                        <pre class="bg-light p-3">${JSON.stringify(store.theme_settings, null, 2)}</pre>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error loading store details:', error);
+                    storeDetailsContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            Error loading store details: ${error.message}
+                        </div>
+                    `;
+                });
+            */
+        }
+        
+        // Load initial data
+        loadStores();
+    });
+</script>
+{% endblock %}

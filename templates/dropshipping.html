@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block title %}Dropshipping Agent{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Dropshipping Agent</h1>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">Niche Discovery</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Discover potential dropshipping niches based on keywords.</p>
+                    <form id="niche-discovery-form">
+                        <div class="mb-3">
+                            <label for="keywords" class="form-label">Keywords (comma separated)</label>
+                            <input type="text" class="form-control" id="keywords" placeholder="e.g. tech gadgets, home automation, fitness equipment">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Discover Niches</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">Trend Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Analyze trends from various sources.</p>
+                    <form id="trend-analysis-form">
+                        <div class="mb-3">
+                            <label for="trend-keywords" class="form-label">Keywords (comma separated)</label>
+                            <input type="text" class="form-control" id="trend-keywords" placeholder="e.g. sustainable products, smart home, pet accessories">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Sources</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="aliexpress" id="source-aliexpress" checked>
+                                <label class="form-check-label" for="source-aliexpress">
+                                    AliExpress
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="amazon" id="source-amazon" checked>
+                                <label class="form-check-label" for="source-amazon">
+                                    Amazon
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="tiktok" id="source-tiktok" checked>
+                                <label class="form-check-label" for="source-tiktok">
+                                    TikTok
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Analyze Trends</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">Product Sourcing</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Source products based on trend analysis or direct URLs.</p>
+                    <form id="product-sourcing-form">
+                        <div class="mb-3">
+                            <label for="product-urls" class="form-label">Product URLs (one per line)</label>
+                            <textarea class="form-control" id="product-urls" rows="3" placeholder="e.g. https://www.aliexpress.com/item/..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Source Products</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">Agent Tasks</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table" id="tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Tasks will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Results Area -->
+    <div class="row" id="results-container" style="display: none;">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Results</h5>
+                    <button type="button" class="btn-close" aria-label="Close" id="close-results"></button>
+                </div>
+                <div class="card-body">
+                    <div id="results-content">
+                        <!-- Results will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Niche Discovery Form
+        document.getElementById('niche-discovery-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const keywords = document.getElementById('keywords').value.split(',').map(k => k.trim());
+            
+            fetch('/api/dropshipping/discover-niches', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    keywords: keywords
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    alert('Error: ' + data.error);
+                } else {
+                    pollTaskStatus(data.task_id, 'niche_discovery');
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+        
+        // Trend Analysis Form
+        document.getElementById('trend-analysis-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const keywords = document.getElementById('trend-keywords').value.split(',').map(k => k.trim());
+            const sources = [];
+            
+            if (document.getElementById('source-aliexpress').checked) sources.push('aliexpress');
+            if (document.getElementById('source-amazon').checked) sources.push('amazon');
+            if (document.getElementById('source-tiktok').checked) sources.push('tiktok');
+            
+            fetch('/api/dropshipping/trend-analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    keywords: keywords,
+                    sources: sources
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    alert('Error: ' + data.error);
+                } else {
+                    pollTaskStatus(data.task_id, 'trend_analysis');
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+        
+        // Product Sourcing Form
+        document.getElementById('product-sourcing-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const urls = document.getElementById('product-urls').value.split('\n').map(url => url.trim()).filter(url => url.length > 0);
+            
+            fetch('/api/dropshipping/source-products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    urls: urls
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    alert('Error: ' + data.error);
+                } else {
+                    pollTaskStatus(data.task_id, 'product_sourcing');
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+        
+        // Close Results Button
+        document.getElementById('close-results').addEventListener('click', function() {
+            document.getElementById('results-container').style.display = 'none';
+        });
+        
+        // Load initial tasks
+        loadTasks();
+        
+        // Refresh tasks every 10 seconds
+        setInterval(loadTasks, 10000);
+    });
+    
+    function loadTasks() {
+        // In a real implementation, this would fetch tasks from a backend API
+        // For demonstration, we'll just keep the existing tasks
+    }
+    
+    function pollTaskStatus(taskId, taskType) {
+        const interval = setInterval(() => {
+            fetch(`/api/agent-task/${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateTasksTable(data);
+                    
+                    if (data.status === 'completed' || data.status === 'failed') {
+                        clearInterval(interval);
+                        
+                        if (data.status === 'completed' && data.result) {
+                            displayResults(data.result, taskType);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error polling task status:', error);
+                    clearInterval(interval);
+                });
+        }, 2000);
+    }
+    
+    function updateTasksTable(task) {
+        const tbody = document.querySelector('#tasks-table tbody');
+        
+        // Check if the task row already exists
+        let row = document.getElementById(`task-row-${task.id}`);
+        
+        if (!row) {
+            // Create a new row if it doesn't exist
+            row = document.createElement('tr');
+            row.id = `task-row-${task.id}`;
+            tbody.prepend(row);
+        }
+        
+        // Format date
+        const createdDate = new Date(task.created_at);
+        const formattedDate = createdDate.toLocaleString();
+        
+        // Update the row content
+        row.innerHTML = `
+            <td>${task.id}</td>
+            <td>${formatTaskType(task.task_type)}</td>
+            <td>
+                <span class="badge rounded-pill ${getStatusBadgeClass(task.status)}">
+                    ${task.status}
+                </span>
+            </td>
+            <td>
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: ${task.progress}%;" 
+                        aria-valuenow="${task.progress}" aria-valuemin="0" aria-valuemax="100">
+                        ${task.progress}%
+                    </div>
+                </div>
+            </td>
+            <td>${formattedDate}</td>
+            <td>
+                ${task.result && task.status === 'completed' ? 
+                    `<button class="btn btn-sm btn-primary view-results" data-task-id="${task.id}" data-result-type="${task.result.type}" data-result-id="${task.result.id}">
+                        View Results
+                    </button>` : 
+                    ''}
+            </td>
+        `;
+        
+        // Add event listener to the view results button
+        const viewResultsBtn = row.querySelector('.view-results');
+        if (viewResultsBtn) {
+            viewResultsBtn.addEventListener('click', function() {
+                const resultType = this.getAttribute('data-result-type');
+                const resultId = this.getAttribute('data-result-id');
+                displayResults({ type: resultType, id: resultId }, task.task_type);
+            });
+        }
+    }
+    
+    function formatTaskType(taskType) {
+        return taskType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    function getStatusBadgeClass(status) {
+        switch (status) {
+            case 'completed':
+                return 'bg-success';
+            case 'failed':
+                return 'bg-danger';
+            case 'processing':
+                return 'bg-primary';
+            case 'pending':
+                return 'bg-warning';
+            default:
+                return 'bg-secondary';
+        }
+    }
+    
+    function displayResults(result, taskType) {
+        const resultsContainer = document.getElementById('results-container');
+        const resultsContent = document.getElementById('results-content');
+        
+        // For now, just display some placeholder content
+        // In a real implementation, this would fetch the specific results from the backend
+        
+        let content = '<div class="alert alert-info">Results are being loaded...</div>';
+        
+        if (taskType === 'niche_discovery') {
+            content = `
+                <h4>Niche Discovery Results</h4>
+                <p>Niche ID: ${result.id}</p>
+                <p>The full details of this niche analysis would be displayed here.</p>
+                <button class="btn btn-primary create-store-btn" data-niche-id="${result.id}">
+                    Create Store from this Niche
+                </button>
+            `;
+        } else if (taskType === 'trend_analysis') {
+            content = `
+                <h4>Trend Analysis Results</h4>
+                <p>Analysis ID: ${result.id}</p>
+                <p>The full details of this trend analysis would be displayed here.</p>
+                <button class="btn btn-primary source-products-btn" data-trend-id="${result.id}">
+                    Source Products from this Trend
+                </button>
+            `;
+        } else if (taskType === 'product_sourcing') {
+            content = `
+                <h4>Product Sourcing Results</h4>
+                <p>Product Source ID: ${result.id}</p>
+                <p>The full details of these product sources would be displayed here.</p>
+                <button class="btn btn-primary evaluate-products-btn" data-product-id="${result.id}">
+                    Evaluate this Product
+                </button>
+            `;
+        }
+        
+        resultsContent.innerHTML = content;
+        resultsContainer.style.display = 'block';
+        
+        // Add event listeners to the buttons
+        const createStoreBtn = resultsContent.querySelector('.create-store-btn');
+        if (createStoreBtn) {
+            createStoreBtn.addEventListener('click', function() {
+                const nicheId = this.getAttribute('data-niche-id');
+                alert(`This would create a store from niche ID ${nicheId}`);
+                // Here you would make an API call to create a store
+            });
+        }
+        
+        const sourceProductsBtn = resultsContent.querySelector('.source-products-btn');
+        if (sourceProductsBtn) {
+            sourceProductsBtn.addEventListener('click', function() {
+                const trendId = this.getAttribute('data-trend-id');
+                alert(`This would source products from trend ID ${trendId}`);
+                // Here you would make an API call to source products
+            });
+        }
+        
+        const evaluateProductsBtn = resultsContent.querySelector('.evaluate-products-btn');
+        if (evaluateProductsBtn) {
+            evaluateProductsBtn.addEventListener('click', function() {
+                const productId = this.getAttribute('data-product-id');
+                alert(`This would evaluate product ID ${productId}`);
+                // Here you would make an API call to evaluate products
+            });
+        }
+    }
+</script>
+{% endblock %}

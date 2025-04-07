@@ -86,6 +86,48 @@
                             </li>
                         </ul>
                     </li>
+                    <li class="nav-item dropdown">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'dropshipping' in request.path or 'store-agent' in request.path %}active{% endif %}" 
+                           href="#" id="agentsDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                           <i class="fas fa-magic me-1"></i> Agents
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="agentsDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/dropshipping' %}active{% endif %}" 
+                                   href="/dropshipping">
+                                   <i class="fas fa-search me-1"></i> Dropshipping Agent
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/store-agent' %}active{% endif %}" 
+                                   href="/store-agent">
+                                   <i class="fas fa-store me-1"></i> Store Agent
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                        <a class="nav-link dropdown-toggle {% if 'dropshipping' in request.path or 'store-agent' in request.path %}active{% endif %}" 
+                           href="#" id="agentsDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                           <i class="fas fa-magic me-1"></i> Agents
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="agentsDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/dropshipping' %}active{% endif %}" 
+                                   href="/dropshipping">
+                                   <i class="fas fa-search me-1"></i> Dropshipping Agent
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == '/store-agent' %}active{% endif %}" 
+                                   href="/store-agent">
+                                   <i class="fas fa-store me-1"></i> Store Agent
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
             </div>
         </div>
