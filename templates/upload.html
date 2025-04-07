@@ -47,10 +47,57 @@
                 <p>Your file should include the following columns:</p>
                 <ul class="mb-4">
                     <li><strong>Required:</strong> title, price</li>
-                    <li><strong>Optional:</strong> description, vendor, product_type, tags, sku, inventory_quantity, image_url, etc.</li>
+                    <li><strong>Basic Optional Fields:</strong> description, vendor, product_type, tags, sku, inventory_quantity, image_url, etc.</li>
+                    <li><strong>SEO Optional Fields:</strong> meta_title, meta_description, meta_keywords, url_handle, category_hierarchy, image_alt</li>
                 </ul>
                 
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb me-2"></i> <strong>New SEO Features!</strong> Include SEO-specific fields to optimize your product pages for search engines. Add meta titles, descriptions, custom URL handles, and more.
+                </div>
+                
                 <div class="accordion" id="templateAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingSEO">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapseSEO" aria-expanded="false" aria-controls="collapseSEO">
+                                SEO Features Guide
+                            </button>
+                        </h2>
+                        <div id="collapseSEO" class="accordion-collapse collapse" aria-labelledby="headingSEO" 
+                             data-bs-parent="#templateAccordion">
+                            <div class="accordion-body">
+                                <div class="card bg-dark border-info mb-3">
+                                    <div class="card-header bg-info text-dark">
+                                        <h5 class="mb-0"><i class="fas fa-search me-2"></i> SEO Field Reference</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Meta Information</h6>
+                                                <ul>
+                                                    <li><strong>meta_title</strong> - Custom SEO title (50-60 characters ideal)</li>
+                                                    <li><strong>meta_description</strong> - SEO description (150-160 characters ideal)</li>
+                                                    <li><strong>meta_keywords</strong> - Comma-separated keywords</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Structure & Organization</h6>
+                                                <ul>
+                                                    <li><strong>url_handle</strong> - Custom URL slug (e.g., "premium-cotton-tshirt")</li>
+                                                    <li><strong>category_hierarchy</strong> - Path format: "Parent > Child > Grandchild"</li>
+                                                    <li><strong>image_alt</strong> - Alt text for images (for SEO and accessibility)</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-secondary mt-3">
+                                            <strong>Pro Tip:</strong> Well-structured SEO data can significantly improve your product visibility in search results. Include relevant keywords in your meta titles and descriptions, but avoid keyword stuffing.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingSample">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
@@ -71,11 +118,11 @@
                                                 <th>vendor</th>
                                                 <th>product_type</th>
                                                 <th>tags</th>
-                                                <th>sku</th>
-                                                <th>inventory_quantity</th>
+                                                <th>meta_title</th>
+                                                <th>meta_description</th>
+                                                <th>url_handle</th>
                                                 <th>image_url</th>
-                                                <th>option1_name</th>
-                                                <th>option1</th>
+                                                <th>image_alt</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -86,11 +133,11 @@
                                                 <td>My Brand</td>
                                                 <td>Apparel</td>
                                                 <td>t-shirt, casual, cotton</td>
-                                                <td>TS-001</td>
-                                                <td>100</td>
+                                                <td>Premium Cotton T-Shirt | My Brand Official</td>
+                                                <td>Shop our comfortable 100% cotton t-shirts, perfect for everyday wear. Free shipping on orders over $50.</td>
+                                                <td>premium-cotton-tshirt</td>
                                                 <td>https://example.com/images/tshirt.jpg</td>
-                                                <td>Size</td>
-                                                <td>Small</td>
+                                                <td>Premium cotton t-shirt in white color</td>
                                             </tr>
                                             <tr>
                                                 <td>Premium Hoodie</td>
@@ -99,11 +146,11 @@
                                                 <td>My Brand</td>
                                                 <td>Apparel</td>
                                                 <td>hoodie, winter, warm</td>
-                                                <td>HD-001</td>
-                                                <td>50</td>
+                                                <td>Winter Hoodie | Stay Warm | My Brand Collection</td>
+                                                <td>Our premium winter hoodie provides exceptional warmth and comfort for cold days. Stylish design with durable construction.</td>
+                                                <td>winter-premium-hoodie</td>
                                                 <td>https://example.com/images/hoodie.jpg</td>
-                                                <td>Size</td>
-                                                <td>Medium</td>
+                                                <td>Warm winter hoodie in gray color with front pocket</td>
                                             </tr>
                                         </tbody>
                                     </table>

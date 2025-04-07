@@ -76,6 +76,92 @@
                                     <a href="https://{{ session.shopify_store_url }}/admin/products/{{ result.id }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-external-link-alt me-1"></i> View
                                     </a>
+                                    {% if result.seo_data %}
+                                    <button type="button" class="btn btn-sm btn-outline-info mt-1" data-bs-toggle="modal" data-bs-target="#seoModal{{ result.id }}">
+                                        <i class="fas fa-search me-1"></i> SEO Details
+                                    </button>
+                                    
+                                    <!-- SEO Details Modal -->
+                                    <div class="modal fade" id="seoModal{{ result.id }}" tabindex="-1" aria-labelledby="seoModalLabel{{ result.id }}" aria-hidden="true">
+                                        <div class="modal-dialog modal-lg">
+                                            <div class="modal-content bg-dark text-light">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="seoModalLabel{{ result.id }}">SEO Details for "{{ result.title }}"</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="card bg-dark border-secondary mb-3">
+                                                        <div class="card-header">
+                                                            <h5><i class="fas fa-search me-2"></i> SEO Preview</h5>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="mb-3 p-3 border rounded">
+                                                                <h6 class="text-primary">{{ result.seo_data.meta_title|default(result.title) }}</h6>
+                                                                <div class="text-success small">https://{{ session.shopify_store_url }}/products/{{ result.seo_data.url_handle|default('product-handle') }}</div>
+                                                                <p class="small text-muted">{{ result.seo_data.meta_description|default('No meta description provided') }}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="card h-100 bg-dark border-secondary">
+                                                                <div class="card-header">
+                                                                    <h5><i class="fas fa-tags me-2"></i> Tags & Categories</h5>
+                                                                </div>
+                                                                <div class="card-body">
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Category Hierarchy:</label>
+                                                                        <p>{{ result.seo_data.category_hierarchy|default('None') }}</p>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Tags:</label>
+                                                                        <div>
+                                                                            {% if result.seo_data.tags %}
+                                                                                {% for tag in result.seo_data.tags.split(',') %}
+                                                                                    <span class="badge bg-info me-1 mb-1">{{ tag.strip() }}</span>
+                                                                                {% endfor %}
+                                                                            {% else %}
+                                                                                <span class="text-muted">No tags</span>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="card h-100 bg-dark border-secondary">
+                                                                <div class="card-header">
+                                                                    <h5><i class="fas fa-file-alt me-2"></i> Meta Data</h5>
+                                                                </div>
+                                                                <div class="card-body">
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Meta Title:</label>
+                                                                        <p>{{ result.seo_data.meta_title|default('Using product title') }}</p>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Meta Description:</label>
+                                                                        <p>{{ result.seo_data.meta_description|default('None') }}</p>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Meta Keywords:</label>
+                                                                        <p>{{ result.seo_data.meta_keywords|default('None') }}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <a href="https://{{ session.shopify_store_url }}/admin/products/{{ result.id }}" target="_blank" class="btn btn-primary">
+                                                        <i class="fas fa-edit me-1"></i> Edit in Shopify
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                     {% endif %}
                                 </td>
                             </tr>

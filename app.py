@@ -126,6 +126,28 @@ def process():
         # Process and upload the data to Shopify
         results = process_data(df, shopify_client)
         
+        # Add SEO data to results for successful products
+        for result in results:
+            if result['status'] == 'success':
+                # Get the corresponding row from the dataframe
+                row_index = result['row'] - 2  # Adjust for 0-indexing and header
+                if 0 <= row_index < len(df):
+                    row_data = df.iloc[row_index]
+                    
+                    # Extract SEO-related fields
+                    seo_data = {
+                        'meta_title': row_data.get('meta_title', None),
+                        'meta_description': row_data.get('meta_description', None),
+                        'meta_keywords': row_data.get('meta_keywords', None),
+                        'url_handle': row_data.get('url_handle', None),
+                        'category_hierarchy': row_data.get('category_hierarchy', None),
+                        'tags': row_data.get('tags', '')
+                    }
+                    
+                    # Only include SEO data if at least one field is present
+                    if any(value for value in seo_data.values() if value is not None):
+                        result['seo_data'] = seo_data
+        
         # Remove the file path from session
         session.pop('file_path', None)
         
