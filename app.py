@@ -1492,6 +1492,9 @@ def api_store_create():
     user_id = data.get('user_id')
     settings_id = data.get('settings_id')
     
+    # Log incoming parameters for debugging
+    logger.debug(f"Store creation params: {store_params}")
+    
     # Get Shopify and AI settings
     shopify_settings = None
     if settings_id:
