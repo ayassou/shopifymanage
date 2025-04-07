@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Results{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-dark">
+                <h2 class="mb-0"><i class="fas fa-clipboard-check me-2"></i> Product Upload Results</h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i> Results of your product upload process.
+                </div>
+                
+                {% set success_count = results|selectattr('status', 'equalto', 'success')|list|length %}
+                {% set error_count = results|selectattr('status', 'equalto', 'error')|list|length %}
+                {% set total_count = results|length %}
+                
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h3 class="card-title">{{ total_count }}</h3>
+                                <p class="card-text">Total Products</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h3 class="card-title">{{ success_count }}</h3>
+                                <p class="card-text">Successfully Created</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h3 class="card-title">{{ error_count }}</h3>
+                                <p class="card-text">Failed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 class="h5 mb-3">Detailed Results</h3>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-dark">
+                        <thead>
+                            <tr>
+                                <th>Row #</th>
+                                <th>Product Title</th>
+                                <th>Status</th>
+                                <th>Message</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in results %}
+                            <tr class="{{ 'table-success' if result.status == 'success' else 'table-danger' }}">
+                                <td>{{ result.row }}</td>
+                                <td>{{ result.title }}</td>
+                                <td>
+                                    {% if result.status == 'success' %}
+                                    <span class="badge bg-success">Success</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Error</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ result.message }}</td>
+                                <td>
+                                    {% if result.status == 'success' and result.id %}
+                                    <a href="https://{{ session.shopify_store_url }}/admin/products/{{ result.id }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-external-link-alt me-1"></i> View
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('upload') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-1"></i> Upload More Products
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-home me-1"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

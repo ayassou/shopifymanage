@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Shopify Product Uploader - Home{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card border-0 shadow">
+            <div class="card-body p-4">
+                <h1 class="card-title text-center mb-4">
+                    <i class="fab fa-shopify me-2"></i> Shopify Product Uploader
+                </h1>
+                <p class="lead text-center">
+                    Easily upload product data from CSV or Excel files to your Shopify store.
+                </p>
+                
+                <hr class="my-4">
+                
+                <div class="row g-4 py-3">
+                    <div class="col-md-4">
+                        <div class="card h-100 bg-dark border-secondary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-cog fa-3x mb-3 text-info"></i>
+                                <h5 class="card-title">1. Configure API</h5>
+                                <p class="card-text">Set up your Shopify API credentials to connect with your store.</p>
+                                <a href="{{ url_for('settings') }}" class="btn btn-outline-info mt-2">
+                                    Configure Settings
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card h-100 bg-dark border-secondary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-upload fa-3x mb-3 text-info"></i>
+                                <h5 class="card-title">2. Upload Data</h5>
+                                <p class="card-text">Upload your product data from CSV or Excel files.</p>
+                                <a href="{{ url_for('upload') }}" class="btn btn-outline-info mt-2">
+                                    Upload Files
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card h-100 bg-dark border-secondary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-check-circle fa-3x mb-3 text-info"></i>
+                                <h5 class="card-title">3. Review Results</h5>
+                                <p class="card-text">Monitor the status of product creation and handle any errors.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <h2 class="h4 mb-3">File Format Requirements</h2>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-dark">
+                        <thead>
+                            <tr>
+                                <th>Column</th>
+                                <th>Description</th>
+                                <th>Required</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>title</td>
+                                <td>Product title/name</td>
+                                <td><span class="badge bg-success">Required</span></td>
+                            </tr>
+                            <tr>
+                                <td>description</td>
+                                <td>Product description (HTML supported)</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                            <tr>
+                                <td>price</td>
+                                <td>Product price (numeric value)</td>
+                                <td><span class="badge bg-success">Required</span></td>
+                            </tr>
+                            <tr>
+                                <td>vendor</td>
+                                <td>Product vendor/brand</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                            <tr>
+                                <td>product_type</td>
+                                <td>Type/category of product</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                            <tr>
+                                <td>tags</td>
+                                <td>Comma-separated tags</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                            <tr>
+                                <td>sku</td>
+                                <td>Stock keeping unit</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                            <tr>
+                                <td>inventory_quantity</td>
+                                <td>Stock quantity</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                            <tr>
+                                <td>image_url</td>
+                                <td>URL for main product image</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                            <tr>
+                                <td>image_url2, image_url3, etc.</td>
+                                <td>URLs for additional product images</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                            <tr>
+                                <td>option1_name, option2_name, etc.</td>
+                                <td>Names for product options (e.g., "Size", "Color")</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                            <tr>
+                                <td>option1, option2, etc.</td>
+                                <td>Values for product options (e.g., "Small", "Blue")</td>
+                                <td><span class="badge bg-secondary">Optional</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('settings') }}" class="btn btn-primary btn-lg">
+                        Get Started <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
