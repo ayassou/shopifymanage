@@ -18,4 +18,6 @@ dependencies = [
     "openai>=1.70.0",
     "sqlalchemy>=2.0.40",
     "trafilatura>=2.0.0",
+    "pillow>=11.1.0",
+    "beautifulsoup4>=4.13.3",
 ]

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}AI API Settings - Shopify Product Uploader{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">
+        <i class="fas fa-brain me-2"></i>
+        AI API Settings
+    </h1>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cog me-2"></i>
+                        Configure AI API
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.ai_settings') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.api_provider.id }}" class="form-label">
+                                <i class="fas fa-plug me-2"></i>
+                                {{ form.api_provider.label }}
+                            </label>
+                            {{ form.api_provider(class="form-select") }}
+                            {% if form.api_provider.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.api_provider.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.api_key.id }}" class="form-label">
+                                <i class="fas fa-key me-2"></i>
+                                {{ form.api_key.label }}
+                            </label>
+                            {{ form.api_key(class="form-control") }}
+                            {% if form.api_key.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.api_key.errors %}
+                                <span>{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                {{ form.submit.label }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Current AI Settings Card -->
+            {% if ai_settings %}
+            <div class="card shadow-sm mb-4 border-success">
+                <div class="card-header bg-success">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Current AI Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p>
+                                <strong>Provider:</strong>
+                                {% if ai_settings.api_provider == 'openai' %}
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-brain me-1"></i> OpenAI (GPT-4o)
+                                </span>
+                                {% else %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-robot me-1"></i> X.AI (Grok)
+                                </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p>
+                                <strong>Status:</strong>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i> Active
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p>
+                                <strong>Last Updated:</strong>
+                                {{ ai_settings.last_used_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        About AI Integration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>This application integrates with AI services to generate product data for Shopify. You can choose between:</p>
+                    
+                    <div class="mb-3">
+                        <h6><i class="fas fa-brain me-2"></i> OpenAI (GPT-4o)</h6>
+                        <p class="small">OpenAI's most advanced multimodal model, capable of understanding both text and images for comprehensive product data generation.</p>
+                        <a href="https://openai.com/api/" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-1"></i> Get API Key
+                        </a>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6><i class="fas fa-robot me-2"></i> X.AI (Grok)</h6>
+                        <p class="small">X.AI's Grok model offers competitive AI capabilities with up-to-date training data, suitable for advanced product data generation.</p>
+                        <a href="https://x.ai/" target="_blank" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-external-link-alt me-1"></i> Get API Key
+                        </a>
+                    </div>
+                    
+                    <div class="alert alert-warning mb-0">
+                        <strong>Note:</strong> Your API keys are securely stored and only used for product data generation within this application.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Next Steps -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        Next Steps
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>After saving your AI settings:</p>
+                    
+                    <ol class="mb-4">
+                        <li>Navigate to the AI Generator page</li>
+                        <li>Choose your preferred input method</li>
+                        <li>Generate product data automatically</li>
+                        <li>Preview and adjust the generated content</li>
+                        <li>Download or upload directly to Shopify</li>
+                    </ol>
+                    
+                    <div class="d-grid">
+                        <a href="{{ url_for('main.ai_generator') }}" class="btn btn-success">
+                            <i class="fas fa-robot me-2"></i>
+                            Go to AI Generator
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

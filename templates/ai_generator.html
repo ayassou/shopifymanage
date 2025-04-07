@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Product Generator - Shopify Product Uploader{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">
+        <i class="fas fa-robot me-2"></i>
+        AI Product Generator
+    </h1>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- AI Settings Warning -->
+            {% if not ai_settings %}
+            <div class="alert alert-warning mb-4">
+                <h5 class="alert-heading">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    AI API Settings Required
+                </h5>
+                <p>Please configure your AI API settings before using the generator.</p>
+                <hr>
+                <a href="{{ url_for('main.ai_settings') }}" class="btn btn-outline-warning">
+                    <i class="fas fa-cog me-2"></i>
+                    Configure AI Settings
+                </a>
+            </div>
+            {% endif %}
+            
+            <!-- Generator Form -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-magic me-2"></i>
+                        Generate Product Data
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('main.ai_generator') }}" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Input Type Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">{{ form.input_type.label }}</label>
+                            <div class="btn-group w-100" role="group">
+                                {% for subfield in form.input_type %}
+                                <input type="radio" class="btn-check" 
+                                       name="{{ form.input_type.name }}" 
+                                       id="{{ subfield.id }}" 
+                                       value="{{ subfield.data }}" 
+                                       autocomplete="off" 
+                                       {% if subfield.checked %}checked{% endif %}>
+                                <label class="btn btn-outline-primary" for="{{ subfield.id }}">
+                                    {% if subfield.data == 'url' %}
+                                        <i class="fas fa-link me-2"></i>
+                                    {% elif subfield.data == 'text' %}
+                                        <i class="fas fa-align-left me-2"></i>
+                                    {% else %}
+                                        <i class="fas fa-list-ul me-2"></i>
+                                    {% endif %}
+                                    {{ subfield.label }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- URL Input Section -->
+                        <div id="url-section" class="input-section mb-4">
+                            <div class="mb-3">
+                                <label for="{{ form.product_url.id }}" class="form-label">
+                                    <i class="fas fa-link me-2"></i>
+                                    {{ form.product_url.label }}
+                                </label>
+                                {{ form.product_url(class="form-control", placeholder="https://example.com/product") }}
+                                <div class="form-text">{{ form.product_url.description }}</div>
+                                {% if form.product_url.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.product_url.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-check form-switch">
+                                {{ form.extract_images(class="form-check-input") }}
+                                <label class="form-check-label" for="{{ form.extract_images.id }}">
+                                    <i class="fas fa-images me-2"></i>
+                                    {{ form.extract_images.label }}
+                                </label>
+                                <div class="form-text">{{ form.extract_images.description }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Text Description Section -->
+                        <div id="text-section" class="input-section mb-4" style="display: none;">
+                            <div class="mb-3">
+                                <label for="{{ form.product_description.id }}" class="form-label">
+                                    <i class="fas fa-align-left me-2"></i>
+                                    {{ form.product_description.label }}
+                                </label>
+                                {{ form.product_description(class="form-control", rows=5, placeholder="Describe your product in detail...") }}
+                                <div class="form-text">{{ form.product_description.description }}</div>
+                                {% if form.product_description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.product_description.errors %}
+                                    <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Partial Data Section -->
+                        <div id="partial-data-section" class="input-section mb-4" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.product_title.id }}" class="form-label">
+                                        {{ form.product_title.label }}
+                                    </label>
+                                    {{ form.product_title(class="form-control", placeholder="Product title") }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.price.id }}" class="form-label">
+                                        {{ form.price.label }}
+                                    </label>
+                                    {{ form.price(class="form-control", placeholder="e.g. 19.99") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.vendor.id }}" class="form-label">
+                                        {{ form.vendor.label }}
+                                    </label>
+                                    {{ form.vendor(class="form-control", placeholder="Brand or manufacturer") }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.product_type.id }}" class="form-label">
+                                        {{ form.product_type.label }}
+                                    </label>
+                                    {{ form.product_type(class="form-control", placeholder="e.g. Clothing, Electronics") }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Common Settings -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">Additional Settings</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.variant_count.id }}" class="form-label">
+                                            <i class="fas fa-sitemap me-2"></i>
+                                            {{ form.variant_count.label }}
+                                        </label>
+                                        {{ form.variant_count(class="form-control", min=1, max=10) }}
+                                        <div class="form-text">{{ form.variant_count.description }}</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label d-block">Options</label>
+                                        <div class="form-check form-switch">
+                                            {{ form.seo_optimize(class="form-check-input") }}
+                                            <label class="form-check-label" for="{{ form.seo_optimize.id }}">
+                                                <i class="fas fa-search me-2"></i>
+                                                {{ form.seo_optimize.label }}
+                                            </label>
+                                            <div class="form-text">{{ form.seo_optimize.description }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary" {% if not ai_settings %}disabled{% endif %}>
+                                <i class="fas fa-bolt me-2"></i>
+                                {{ form.submit.label }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Info Box -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        How It Works
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>The AI Product Generator creates formatted product data files ready for upload to Shopify. Choose your preferred input method:</p>
+                    
+                    <div class="mb-3">
+                        <h6><i class="fas fa-link me-2"></i> URL Scraping</h6>
+                        <p class="small">Enter a product page URL, and the AI will extract product details, descriptions, and images automatically.</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6><i class="fas fa-align-left me-2"></i> Text Description</h6>
+                        <p class="small">Describe your product(s) in natural language, and the AI will generate structured product data.</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6><i class="fas fa-list-ul me-2"></i> Partial Data</h6>
+                        <p class="small">Enter the information you have, and the AI will fill in the gaps to create complete product listings.</p>
+                    </div>
+                    
+                    <div class="alert alert-secondary mb-0">
+                        <strong>Note:</strong> Generated product data will be available for preview before uploading to Shopify.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Provider Info -->
+            {% if ai_settings %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        AI Connection Ready
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>
+                        <strong>Current Provider:</strong>
+                        {% if ai_settings.api_provider == 'openai' %}
+                        <span class="badge bg-primary">
+                            <i class="fas fa-brain me-1"></i> OpenAI (GPT-4o)
+                        </span>
+                        {% else %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-robot me-1"></i> X.AI (Grok)
+                        </span>
+                        {% endif %}
+                    </p>
+                    <p>Your AI settings are configured and ready to use.</p>
+                    <a href="{{ url_for('main.ai_settings') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-cog me-2"></i>
+                        Manage AI Settings
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get all radio inputs
+        var radioInputs = document.querySelectorAll('input[name="{{ form.input_type.name }}"]');
+        
+        // Get all section divs
+        var urlSection = document.getElementById('url-section');
+        var textSection = document.getElementById('text-section');
+        var partialDataSection = document.getElementById('partial-data-section');
+        
+        // Function to toggle sections based on selected input type
+        function toggleSections() {
+            var selectedValue = '';
+            
+            // Find selected radio button
+            radioInputs.forEach(function(radio) {
+                if (radio.checked) {
+                    selectedValue = radio.value;
+                }
+            });
+            
+            // Show/hide sections based on selection
+            urlSection.style.display = selectedValue === 'url' ? 'block' : 'none';
+            textSection.style.display = selectedValue === 'text' ? 'block' : 'none';
+            partialDataSection.style.display = selectedValue === 'partial_data' ? 'block' : 'none';
+        }
+        
+        // Add event listeners to radio buttons
+        radioInputs.forEach(function(radio) {
+            radio.addEventListener('change', toggleSections);
+        });
+        
+        // Initial toggle based on default selection
+        toggleSections();
+    });
+</script>
+{% endblock %}

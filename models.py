@@ -18,6 +18,18 @@ class ShopifySettings(db.Model):
     def __repr__(self):
         return f'<ShopifySettings {self.store_url}>'
 
+class AISettings(db.Model):
+    """Model for AI API settings"""
+    id = db.Column(db.Integer, primary_key=True)
+    api_provider = db.Column(db.String(50), nullable=False, default='openai')
+    api_key = db.Column(db.String(255), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<AISettings {self.api_provider}>'
+
 class UploadHistory(db.Model):
     """Model for tracking product upload history"""
     id = db.Column(db.Integer, primary_key=True)

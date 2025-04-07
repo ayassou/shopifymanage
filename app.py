@@ -1,13 +1,18 @@
 import os
 import logging
+import time
+import json
+import tempfile
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_file, Response
 from werkzeug.utils import secure_filename
 import pandas as pd
-from forms import UploadForm, ShopifySettingsForm
+from forms import UploadForm, ShopifySettingsForm, AISettingsForm, AIGeneratorForm
 from data_processor import process_data, validate_data
 from shopify_client import ShopifyClient
-from models import db, ShopifySettings, UploadHistory, ProductUploadResult
+from ai_service import AIService
+from web_scraper import ProductScraper
+from models import db, ShopifySettings, AISettings, UploadHistory, ProductUploadResult
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -219,3 +224,359 @@ def process():
         logger.error(f"Error processing data: {str(e)}")
         flash(f'Error processing data: {str(e)}', 'danger')
         return redirect(url_for('main.upload'))
+
+@app.route('/ai/settings', methods=['GET', 'POST'])
+def ai_settings():
+    """Route for configuring AI API settings"""
+    form = AISettingsForm()
+    
+    # Get the active AI settings from the database if they exist
+    active_settings = AISettings.query.filter_by(is_active=True).first()
+    
+    if form.validate_on_submit():
+        # Create new settings or update existing ones
+        if active_settings:
+            active_settings.api_provider = form.api_provider.data
+            active_settings.api_key = form.api_key.data
+            active_settings.last_used_at = datetime.utcnow()
+            db.session.commit()
+        else:
+            new_settings = AISettings(
+                api_provider=form.api_provider.data,
+                api_key=form.api_key.data
+            )
+            db.session.add(new_settings)
+            db.session.commit()
+        
+        flash('AI API settings saved successfully!', 'success')
+        return redirect(url_for('main.ai_generator'))
+    
+    # Pre-fill the form with existing settings if available
+    if active_settings:
+        form.api_provider.data = active_settings.api_provider
+        form.api_key.data = active_settings.api_key
+    
+    return render_template('ai_settings.html', form=form, ai_settings=active_settings)
+
+@app.route('/ai/generator', methods=['GET', 'POST'])
+def ai_generator():
+    """Route for the AI product generator"""
+    # Check if AI settings exist in the database
+    active_settings = AISettings.query.filter_by(is_active=True).first()
+    form = AIGeneratorForm()
+    
+    if form.validate_on_submit():
+        if not active_settings:
+            flash('Please configure your AI API settings first.', 'warning')
+            return redirect(url_for('main.ai_settings'))
+        
+        try:
+            # Initialize the AI Service
+            ai_service = AIService(api_key=active_settings.api_key, 
+                                 api_provider=active_settings.api_provider)
+            
+            # Record the start time for performance tracking
+            start_time = time.time()
+            
+            # Process the input based on the selected type
+            input_type = form.input_type.data
+            
+            # For URL input
+            if input_type == 'url':
+                product_url = form.product_url.data
+                if not product_url:
+                    flash('Please enter a product URL.', 'warning')
+                    return render_template('ai_generator.html', form=form, ai_settings=active_settings)
+                
+                # Store image URLs if extraction is enabled
+                image_urls = []
+                if form.extract_images.data:
+                    # Create a product scraper instance
+                    scraper = ProductScraper()
+                    try:
+                        image_urls = scraper.extract_product_images(product_url)
+                    except Exception as e:
+                        logger.warning(f"Failed to extract images from {product_url}: {str(e)}")
+                
+                # Generate product data from URL
+                result = ai_service.generate_product_data(
+                    input_type='url',
+                    input_data=product_url,
+                    num_variants=form.variant_count.data
+                )
+                
+                # Add the extracted image URLs to the result
+                if image_urls:
+                    result['csv_data']['image_urls'] = image_urls
+            
+            # For text description input
+            elif input_type == 'text':
+                product_description = form.product_description.data
+                if not product_description:
+                    flash('Please enter a product description.', 'warning')
+                    return render_template('ai_generator.html', form=form, ai_settings=active_settings)
+                
+                # Generate product data from text description
+                result = ai_service.generate_product_data(
+                    input_type='text',
+                    input_data=product_description,
+                    num_variants=form.variant_count.data
+                )
+            
+            # For partial data input
+            elif input_type == 'partial_data':
+                # Collect the partial data from the form
+                partial_data = {
+                    'product_title': form.product_title.data,
+                    'price': form.price.data,
+                    'vendor': form.vendor.data,
+                    'product_type': form.product_type.data
+                }
+                
+                # Remove empty values
+                partial_data = {k: v for k, v in partial_data.items() if v}
+                
+                if not partial_data:
+                    flash('Please provide at least one product detail.', 'warning')
+                    return render_template('ai_generator.html', form=form, ai_settings=active_settings)
+                
+                # Generate product data from partial data
+                result = ai_service.generate_product_data(
+                    input_type='partial_data',
+                    input_data=partial_data,
+                    num_variants=form.variant_count.data
+                )
+            
+            # Calculate generation time
+            generation_time = time.time() - start_time
+            
+            # Extract generated data
+            csv_data = result['csv_data']
+            
+            # Store the data in the session for preview and download
+            # Convert DataFrame to CSV string and store in session
+            csv_string = csv_data.to_csv(index=False)
+            
+            # Create a temporary file with the CSV data
+            temp_csv_fd, temp_csv_path = tempfile.mkstemp(suffix='.csv')
+            with os.fdopen(temp_csv_fd, 'w') as f:
+                f.write(csv_string)
+            
+            # Store paths and metadata in session
+            session['ai_generated_csv_path'] = temp_csv_path
+            session['ai_generated_product_data'] = json.dumps(result, default=str)
+            session['ai_generation_stats'] = {
+                'product_count': result.get('product_count', 1),
+                'variant_count': result.get('variant_count', 0),
+                'image_count': result.get('image_count', 0),
+                'generation_time': generation_time
+            }
+            
+            # If image URLs were extracted, store them in the session
+            if 'image_urls' in result:
+                session['ai_generated_image_urls'] = result['image_urls']
+            
+            # Redirect to the preview page
+            return redirect(url_for('main.ai_preview'))
+            
+        except Exception as e:
+            logger.error(f"Error generating product data: {str(e)}")
+            flash(f'Error generating product data: {str(e)}', 'danger')
+            return render_template('ai_generator.html', form=form, ai_settings=active_settings)
+    
+    return render_template('ai_generator.html', form=form, ai_settings=active_settings)
+
+@app.route('/ai/preview')
+def ai_preview():
+    """Route for previewing AI-generated product data"""
+    # Check if AI settings exist in the database
+    active_settings = AISettings.query.filter_by(is_active=True).first()
+    
+    # Check if generated data exists in the session
+    if 'ai_generated_product_data' not in session:
+        flash('No generated data found. Please generate product data first.', 'warning')
+        return redirect(url_for('main.ai_generator'))
+    
+    try:
+        # Load the generated data from the session
+        product_data = json.loads(session['ai_generated_product_data'])
+        
+        # Get the CSV path
+        csv_path = session.get('ai_generated_csv_path')
+        if not csv_path or not os.path.exists(csv_path):
+            flash('CSV file not found. Please generate product data again.', 'warning')
+            return redirect(url_for('main.ai_generator'))
+        
+        # Read the CSV file for preview
+        df = pd.read_csv(csv_path)
+        
+        # Prepare CSV preview data (first 5 rows)
+        csv_preview = df.head(5).values.tolist()
+        csv_columns = df.columns.tolist()
+        
+        # Get generation stats
+        generation_stats = session.get('ai_generation_stats', {
+            'product_count': 1,
+            'variant_count': 0,
+            'image_count': 0,
+            'generation_time': 0
+        })
+        
+        # Get image URLs if available
+        image_urls = session.get('ai_generated_image_urls', [])
+        
+        return render_template('ai_preview.html', 
+                               product_data=product_data,
+                               csv_preview=csv_preview,
+                               csv_columns=csv_columns,
+                               generation_stats=generation_stats,
+                               image_urls=image_urls,
+                               ai_settings=active_settings)
+    except Exception as e:
+        logger.error(f"Error previewing generated data: {str(e)}")
+        flash(f'Error previewing generated data: {str(e)}', 'danger')
+        return redirect(url_for('main.ai_generator'))
+
+@app.route('/ai/download_csv')
+def download_generated_csv():
+    """Route for downloading the AI-generated CSV file"""
+    # Check if CSV path exists in session
+    if 'ai_generated_csv_path' not in session:
+        flash('No generated CSV found. Please generate product data first.', 'warning')
+        return redirect(url_for('main.ai_generator'))
+    
+    csv_path = session.get('ai_generated_csv_path')
+    if not csv_path or not os.path.exists(csv_path):
+        flash('CSV file not found. Please generate product data again.', 'warning')
+        return redirect(url_for('main.ai_generator'))
+    
+    try:
+        # Generate a filename based on the product data
+        if 'ai_generated_product_data' in session:
+            product_data = json.loads(session['ai_generated_product_data'])
+            product_title = product_data.get('product_title', 'product').lower()
+            # Clean up product title for filename
+            filename = f"{product_title.replace(' ', '_')[:30]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        else:
+            filename = f"shopify_product_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        # Send the file to the client
+        return send_file(csv_path, 
+                        mimetype='text/csv',
+                        as_attachment=True,
+                        download_name=filename)
+    except Exception as e:
+        logger.error(f"Error downloading CSV: {str(e)}")
+        flash(f'Error downloading CSV: {str(e)}', 'danger')
+        return redirect(url_for('main.ai_preview'))
+
+@app.route('/ai/upload_to_shopify')
+def upload_generated_product():
+    """Route for uploading the AI-generated product to Shopify"""
+    # Check if CSV path exists in session
+    if 'ai_generated_csv_path' not in session:
+        flash('No generated data found. Please generate product data first.', 'warning')
+        return redirect(url_for('main.ai_generator'))
+    
+    # Check if Shopify settings exist in the database
+    active_settings = ShopifySettings.query.filter_by(is_active=True).first()
+    if not active_settings:
+        flash('Please configure your Shopify API settings first.', 'warning')
+        return redirect(url_for('main.settings'))
+    
+    try:
+        # Get the CSV path
+        csv_path = session.get('ai_generated_csv_path')
+        if not csv_path or not os.path.exists(csv_path):
+            flash('CSV file not found. Please generate product data again.', 'warning')
+            return redirect(url_for('main.ai_generator'))
+        
+        # Read the CSV file
+        df = pd.read_csv(csv_path)
+        
+        # Create an upload history record
+        upload_history = UploadHistory(
+            filename="AI_Generated_Product.csv",
+            file_type="csv",
+            record_count=len(df),
+            settings_id=active_settings.id
+        )
+        db.session.add(upload_history)
+        db.session.commit()
+        
+        # Initialize Shopify client
+        shopify_client = ShopifyClient(
+            active_settings.api_key,
+            active_settings.password,
+            active_settings.store_url,
+            active_settings.api_version
+        )
+        
+        # Process and upload the data to Shopify
+        results = process_data(df, shopify_client)
+        
+        # Update the upload history with success/error counts
+        success_count = sum(1 for result in results if result['status'] == 'success')
+        error_count = sum(1 for result in results if result['status'] == 'error')
+        
+        upload_history.success_count = success_count
+        upload_history.error_count = error_count
+        db.session.commit()
+        
+        # Store the results in the database
+        upload_id = upload_history.id
+        for result in results:
+            row_number = result.get('row', 0)
+            row_index = row_number - 2  # Adjust for 0-indexing and header
+            
+            # Extract SEO data from the row if it exists
+            seo_data = {}
+            if 0 <= row_index < len(df):
+                row_data = df.iloc[row_index]
+                seo_data = {
+                    'meta_title': row_data.get('meta_title', None),
+                    'meta_description': row_data.get('meta_description', None),
+                    'meta_keywords': row_data.get('meta_keywords', None),
+                    'url_handle': row_data.get('url_handle', None),
+                    'category_hierarchy': row_data.get('category_hierarchy', None)
+                }
+            
+            # Create a product upload result record
+            product_result = ProductUploadResult(
+                upload_id=upload_id,
+                product_title=result.get('product_title', 'Unknown'),
+                status=result.get('status', 'unknown'),
+                message=result.get('message', ''),
+                row_number=row_number,
+                shopify_product_id=result.get('product_id', None),
+                meta_title=seo_data.get('meta_title'),
+                meta_description=seo_data.get('meta_description'),
+                meta_keywords=seo_data.get('meta_keywords'),
+                url_handle=seo_data.get('url_handle'),
+                category_hierarchy=seo_data.get('category_hierarchy')
+            )
+            db.session.add(product_result)
+        
+        db.session.commit()
+        
+        # Clear the AI-generated data from session
+        session.pop('ai_generated_csv_path', None)
+        session.pop('ai_generated_product_data', None)
+        session.pop('ai_generation_stats', None)
+        session.pop('ai_generated_image_urls', None)
+        
+        # Render the results page
+        return render_template('results.html', results=results, upload=upload_history)
+        
+    except Exception as e:
+        logger.error(f"Error uploading generated product to Shopify: {str(e)}")
+        flash(f'Error uploading to Shopify: {str(e)}', 'danger')
+        return redirect(url_for('main.ai_preview'))
+
+@app.route('/ai/regenerate')
+def regenerate_product():
+    """Route for regenerating product data with different parameters"""
+    # Simply redirect to the generator page
+    # The user will need to input their parameters again
+    flash('Please adjust your parameters and generate new product data.', 'info')
+    return redirect(url_for('main.ai_generator'))

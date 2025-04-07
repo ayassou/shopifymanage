@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Generated Product Preview - Shopify Product Uploader{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">
+        <i class="fas fa-eye me-2"></i>
+        Generated Product Preview
+    </h1>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Product Data Preview -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-box me-2"></i>
+                        Product Data
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Product Summary -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <h4>{{ product_data.product_title }}</h4>
+                            <p class="text-muted">{{ product_data.vendor }} | {{ product_data.product_type }}</p>
+                            <h5 class="text-primary">${{ product_data.price }}</h5>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            {% if image_urls and image_urls|length > 0 %}
+                            <img src="{{ image_urls[0] }}" class="img-fluid rounded" alt="Product Image" style="max-height: 120px;">
+                            {% else %}
+                            <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="height: 120px; width: 100%;">
+                                <i class="fas fa-image fa-3x text-light"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Tabbed Content -->
+                    <ul class="nav nav-tabs mb-3" id="productTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab" aria-controls="description" aria-selected="true">
+                                <i class="fas fa-align-left me-1"></i> Description
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="seo-tab" data-bs-toggle="tab" data-bs-target="#seo" type="button" role="tab" aria-controls="seo" aria-selected="false">
+                                <i class="fas fa-search me-1"></i> SEO
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="variants-tab" data-bs-toggle="tab" data-bs-target="#variants" type="button" role="tab" aria-controls="variants" aria-selected="false">
+                                <i class="fas fa-sitemap me-1"></i> Variants
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="images-tab" data-bs-toggle="tab" data-bs-target="#images" type="button" role="tab" aria-controls="images" aria-selected="false">
+                                <i class="fas fa-images me-1"></i> Images
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="productTabContent">
+                        <!-- Description Tab -->
+                        <div class="tab-pane fade show active" id="description" role="tabpanel" aria-labelledby="description-tab">
+                            <h6 class="fw-bold">Product Description</h6>
+                            <div class="card bg-light p-3 mb-3">
+                                {{ product_data.product_description | safe }}
+                            </div>
+                            
+                            {% if product_data.features and product_data.features|length > 0 %}
+                            <h6 class="fw-bold">Features</h6>
+                            <ul class="list-group mb-3">
+                                {% for feature in product_data.features %}
+                                <li class="list-group-item">{{ feature }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                            
+                            {% if product_data.tags and product_data.tags|length > 0 %}
+                            <h6 class="fw-bold">Tags</h6>
+                            <div>
+                                {% for tag in product_data.tags %}
+                                <span class="badge bg-secondary me-1 mb-1">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- SEO Tab -->
+                        <div class="tab-pane fade" id="seo" role="tabpanel" aria-labelledby="seo-tab">
+                            <div class="mb-3">
+                                <h6 class="fw-bold">Meta Title</h6>
+                                <div class="card bg-light p-3">
+                                    {{ product_data.meta_title }}
+                                </div>
+                                <div class="progress mt-1" style="height: 5px;">
+                                    {% set title_length = product_data.meta_title|length %}
+                                    {% set title_percent = (title_length / 70) * 100 %}
+                                    <div class="progress-bar {% if title_length > 60 and title_length <= 70 %}bg-success{% elif title_length > 70 %}bg-danger{% else %}bg-warning{% endif %}" role="progressbar" style="width: {{ title_percent }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ title_length }}/70 characters</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="fw-bold">Meta Description</h6>
+                                <div class="card bg-light p-3">
+                                    {{ product_data.meta_description }}
+                                </div>
+                                <div class="progress mt-1" style="height: 5px;">
+                                    {% set desc_length = product_data.meta_description|length %}
+                                    {% set desc_percent = (desc_length / 160) * 100 %}
+                                    <div class="progress-bar {% if desc_length > 140 and desc_length <= 160 %}bg-success{% elif desc_length > 160 %}bg-danger{% else %}bg-warning{% endif %}" role="progressbar" style="width: {{ desc_percent }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ desc_length }}/160 characters</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="fw-bold">Meta Keywords</h6>
+                                <div class="card bg-light p-3">
+                                    {{ product_data.meta_keywords }}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="fw-bold">URL Handle</h6>
+                                <div class="card bg-light p-3">
+                                    {{ product_data.url_handle }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Variants Tab -->
+                        <div class="tab-pane fade" id="variants" role="tabpanel" aria-labelledby="variants-tab">
+                            {% if product_data.variants and product_data.variants|length > 0 %}
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Variant</th>
+                                            <th>SKU</th>
+                                            <th>Price</th>
+                                            <th>Options</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for variant in product_data.variants %}
+                                        <tr>
+                                            <td>{{ variant.title }}</td>
+                                            <td>{{ variant.sku }}</td>
+                                            <td>${{ variant.price }}</td>
+                                            <td>
+                                                {% if variant.option1 and variant.value1 %}
+                                                <span class="badge bg-info me-1">{{ variant.option1 }}: {{ variant.value1 }}</span>
+                                                {% endif %}
+                                                {% if variant.option2 and variant.value2 %}
+                                                <span class="badge bg-info me-1">{{ variant.option2 }}: {{ variant.value2 }}</span>
+                                                {% endif %}
+                                                {% if variant.option3 and variant.value3 %}
+                                                <span class="badge bg-info me-1">{{ variant.option3 }}: {{ variant.value3 }}</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                This product does not have any variants.
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Images Tab -->
+                        <div class="tab-pane fade" id="images" role="tabpanel" aria-labelledby="images-tab">
+                            {% if image_urls and image_urls|length > 0 %}
+                            <div class="row">
+                                {% for image_url in image_urls %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card">
+                                        <img src="{{ image_url }}" class="card-img-top" alt="Product Image {{ loop.index }}">
+                                        <div class="card-body p-2 text-center">
+                                            <small class="text-muted">Image {{ loop.index }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No images were found or extracted for this product.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body d-flex flex-wrap justify-content-between">
+                    <div class="mb-2 mb-md-0">
+                        <a href="{{ url_for('main.ai_generator') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Back to Generator
+                        </a>
+                        <a href="{{ url_for('main.regenerate_product') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-redo me-2"></i>
+                            Regenerate
+                        </a>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('main.download_generated_csv') }}" class="btn btn-success me-2">
+                            <i class="fas fa-download me-2"></i>
+                            Download CSV
+                        </a>
+                        <a href="{{ url_for('main.upload_generated_product') }}" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>
+                            Upload to Shopify
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- CSV Preview -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table me-2"></i>
+                        CSV Preview
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    {% for column in csv_columns[:5] %}
+                                    <th>{{ column }}</th>
+                                    {% endfor %}
+                                    <th>...</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in csv_preview %}
+                                <tr>
+                                    {% for cell in row[:5] %}
+                                    <td>{{ cell }}</td>
+                                    {% endfor %}
+                                    <td>...</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Showing {{ csv_preview|length }} rows of data with {{ csv_columns|length }} columns in total.
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Generation Summary -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clipboard-list me-2"></i>
+                        Generation Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-box me-2"></i> Products</span>
+                            <span class="badge bg-primary rounded-pill">{{ generation_stats.product_count }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-sitemap me-2"></i> Variants</span>
+                            <span class="badge bg-primary rounded-pill">{{ generation_stats.variant_count }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-images me-2"></i> Images</span>
+                            <span class="badge bg-primary rounded-pill">{{ generation_stats.image_count }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-brain me-2"></i> AI Provider</span>
+                            <span class="badge {% if ai_settings.api_provider == 'openai' %}bg-success{% else %}bg-info{% endif %}">
+                                {{ ai_settings.api_provider|upper }}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="fas fa-clock me-2"></i> Generation Time</span>
+                            <span>{{ generation_stats.generation_time|round(2) }} seconds</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

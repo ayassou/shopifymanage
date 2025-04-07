@@ -11,18 +11,35 @@
                     <i class="fab fa-shopify me-2"></i> Shopify Product Uploader
                 </h1>
                 <p class="lead text-center">
-                    Easily upload product data from CSV or Excel files to your Shopify store.
+                    Easily upload product data to your Shopify store with powerful AI-assisted tools.
                 </p>
                 
                 <hr class="my-4">
                 
+                <!-- AI Generator Feature Banner -->
+                <div class="card bg-primary text-white mb-4 border-0 shadow">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h3 class="mb-2"><i class="fas fa-robot me-2"></i> NEW: AI Product Generator</h3>
+                                <p class="mb-0">Create Shopify product data automatically from URLs, descriptions, or partial information. Our AI extracts product details, images, and generates SEO-optimized content.</p>
+                            </div>
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                <a href="{{ url_for('main.ai_generator') }}" class="btn btn-light">
+                                    <i class="fas fa-magic me-2"></i> Try AI Generator
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="row g-4 py-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card h-100 bg-dark border-secondary">
                             <div class="card-body text-center">
                                 <i class="fas fa-cog fa-3x mb-3 text-info"></i>
-                                <h5 class="card-title">1. Configure API</h5>
-                                <p class="card-text">Set up your Shopify API credentials to connect with your store.</p>
+                                <h5 class="card-title">1. Configure APIs</h5>
+                                <p class="card-text">Set up your Shopify API and AI API credentials.</p>
                                 <a href="{{ url_for('main.settings') }}" class="btn btn-outline-info mt-2">
                                     Configure Settings
                                 </a>
@@ -30,12 +47,25 @@
                         </div>
                     </div>
                     
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="card h-100 bg-dark border-secondary">
+                            <div class="card-body text-center">
+                                <i class="fas fa-robot fa-3x mb-3 text-primary"></i>
+                                <h5 class="card-title">2a. Generate Data</h5>
+                                <p class="card-text">Use AI to generate product data from URLs or descriptions.</p>
+                                <a href="{{ url_for('main.ai_generator') }}" class="btn btn-outline-primary mt-2">
+                                    AI Generator
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
                         <div class="card h-100 bg-dark border-secondary">
                             <div class="card-body text-center">
                                 <i class="fas fa-file-upload fa-3x mb-3 text-info"></i>
-                                <h5 class="card-title">2. Upload Data</h5>
-                                <p class="card-text">Upload your product data from CSV or Excel files.</p>
+                                <h5 class="card-title">2b. Upload Files</h5>
+                                <p class="card-text">Upload your existing CSV or Excel product files.</p>
                                 <a href="{{ url_for('main.upload') }}" class="btn btn-outline-info mt-2">
                                     Upload Files
                                 </a>
@@ -43,12 +73,12 @@
                         </div>
                     </div>
                     
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card h-100 bg-dark border-secondary">
                             <div class="card-body text-center">
                                 <i class="fas fa-check-circle fa-3x mb-3 text-info"></i>
                                 <h5 class="card-title">3. Review Results</h5>
-                                <p class="card-text">Monitor the status of product creation and handle any errors.</p>
+                                <p class="card-text">Monitor product creation and handle any errors.</p>
                             </div>
                         </div>
                     </div>
@@ -202,8 +232,11 @@
                 </div>
                 
                 <div class="text-center mt-4">
-                    <a href="{{ url_for('main.settings') }}" class="btn btn-primary btn-lg">
-                        Get Started <i class="fas fa-arrow-right ms-2"></i>
+                    <a href="{{ url_for('main.settings') }}" class="btn btn-primary me-2 btn-lg">
+                        <i class="fas fa-cog me-2"></i> Configure API
+                    </a>
+                    <a href="{{ url_for('main.ai_generator') }}" class="btn btn-success btn-lg">
+                        <i class="fas fa-robot me-2"></i> Try AI Generator
                     </a>
                 </div>
             </div>
