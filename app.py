@@ -66,7 +66,7 @@ def settings():
             db.session.commit()
         
         flash('Shopify settings saved successfully!', 'success')
-        return redirect(url_for('settings'))
+        return redirect(url_for('main.settings'))
     
     # Pre-fill the form with existing settings if available
     if active_settings:
@@ -252,7 +252,7 @@ def ai_settings():
             db.session.commit()
         
         flash('AI API settings saved successfully!', 'success')
-        return redirect(url_for('ai_settings'))
+        return redirect(url_for('main.ai_settings'))
     
     # Pre-fill the form with existing settings if available
     if active_settings:
