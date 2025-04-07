@@ -243,3 +243,66 @@ class ShopifyClient:
             dict: Response from the Shopify API
         """
         return self._make_request('DELETE', f'blogs/{blog_id}/articles/{article_id}.json')
+        
+    # Page API Methods
+    
+    def get_pages(self, limit=50):
+        """
+        Get a list of all pages from the Shopify store
+        
+        Args:
+            limit (int): Maximum number of pages to retrieve
+            
+        Returns:
+            dict: List of pages
+        """
+        return self._make_request('GET', f'pages.json?limit={limit}')
+        
+    def get_page(self, page_id):
+        """
+        Get details of a specific page
+        
+        Args:
+            page_id (str): ID of the page to retrieve
+            
+        Returns:
+            dict: Page data
+        """
+        return self._make_request('GET', f'pages/{page_id}.json')
+        
+    def create_page(self, page_data):
+        """
+        Create a new page in Shopify
+        
+        Args:
+            page_data (dict): Page data in Shopify API format
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        return self._make_request('POST', 'pages.json', data=page_data)
+        
+    def update_page(self, page_id, page_data):
+        """
+        Update an existing page
+        
+        Args:
+            page_id (str): ID of the page to update
+            page_data (dict): Updated page data
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        return self._make_request('PUT', f'pages/{page_id}.json', data=page_data)
+        
+    def delete_page(self, page_id):
+        """
+        Delete a page
+        
+        Args:
+            page_id (str): ID of the page to delete
+            
+        Returns:
+            dict: Response from the Shopify API
+        """
+        return self._make_request('DELETE', f'pages/{page_id}.json')

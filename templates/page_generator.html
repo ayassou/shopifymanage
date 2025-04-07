@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Page Content Generator{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Static Page Content Generator</h1>
+            <p class="lead">Generate professional content for various static pages for your Shopify store using AI.</p>
+            
+            {% if not ai_settings %}
+            <div class="alert alert-warning">
+                <strong>AI API not configured.</strong> Please <a href="{{ url_for('main.ai_settings') }}">configure your AI API settings</a> first.
+            </div>
+            {% endif %}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.csrf_token }}
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.page_type.id }}" class="form-label">Page Type</label>
+                                    {{ form.page_type(class="form-select") }}
+                                    <div class="form-text">Select the type of page you need to generate.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.title.id }}" class="form-label">Page Title (Optional)</label>
+                                    {{ form.title(class="form-control", placeholder="Leave blank for AI to generate") }}
+                                    <div class="form-text">{{ form.title.description }}</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.tone.id }}" class="form-label">Tone of Voice</label>
+                                    {{ form.tone(class="form-select") }}
+                                    <div class="form-text">The writing style for your page content.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.target_audience.id }}" class="form-label">Target Audience</label>
+                                    {{ form.target_audience(class="form-control", placeholder="Who are your customers?") }}
+                                    <div class="form-text">{{ form.target_audience.description }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.company_name.id }}" class="form-label">Company/Store Name</label>
+                                    {{ form.company_name(class="form-control", placeholder="Your business name") }}
+                                    <div class="form-text">{{ form.company_name.description }}</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.company_description.id }}" class="form-label">Company Description</label>
+                                    {{ form.company_description(class="form-control", rows=3, placeholder="Brief description of your business") }}
+                                    <div class="form-text">{{ form.company_description.description }}</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.industry.id }}" class="form-label">Industry</label>
+                                    {{ form.industry(class="form-control", placeholder="e.g., Fashion, Electronics") }}
+                                    <div class="form-text">{{ form.industry.description }}</div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.founding_year.id }}" class="form-label">Founding Year</label>
+                                            {{ form.founding_year(class="form-control", placeholder="e.g., 2020") }}
+                                            <div class="form-text">{{ form.founding_year.description }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.location.id }}" class="form-label">Location</label>
+                                            {{ form.location(class="form-control", placeholder="City, Country") }}
+                                            <div class="form-text">{{ form.location.description }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Conditional fields based on page type -->
+                        <div class="row mb-4 page-specific-fields" id="about-fields">
+                            <div class="col-md-12">
+                                <h4 class="mb-3">About Page Details</h4>
+                                <div class="mb-3">
+                                    <label for="{{ form.values.id }}" class="form-label">Company Values</label>
+                                    {{ form.values(class="form-control", placeholder="Quality, Innovation, Sustainability") }}
+                                    <div class="form-text">{{ form.values.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4 page-specific-fields" id="contact-fields" style="display:none;">
+                            <div class="col-md-12">
+                                <h4 class="mb-3">Contact Page Details</h4>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.contact_email.id }}" class="form-label">Contact Email</label>
+                                            {{ form.contact_email(class="form-control", placeholder="contact@example.com") }}
+                                            <div class="form-text">{{ form.contact_email.description }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.contact_phone.id }}" class="form-label">Contact Phone</label>
+                                            {{ form.contact_phone(class="form-control", placeholder="+1 (555) 123-4567") }}
+                                            <div class="form-text">{{ form.contact_phone.description }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.contact_address.id }}" class="form-label">Physical Address</label>
+                                    {{ form.contact_address(class="form-control", rows=2, placeholder="123 Main St, City, State, ZIP") }}
+                                    <div class="form-text">{{ form.contact_address.description }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="{{ form.social_media.id }}" class="form-label">Social Media</label>
+                                    {{ form.social_media(class="form-control", placeholder="Instagram: @yourstore, Facebook: yourstorefb") }}
+                                    <div class="form-text">{{ form.social_media.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4 page-specific-fields" id="faq-fields" style="display:none;">
+                            <div class="col-md-12">
+                                <h4 class="mb-3">FAQ Page Details</h4>
+                                <div class="mb-3">
+                                    <label for="{{ form.faq_topics.id }}" class="form-label">FAQ Topics</label>
+                                    {{ form.faq_topics(class="form-control", rows=3, placeholder="shipping, returns, sizing, payment methods") }}
+                                    <div class="form-text">{{ form.faq_topics.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <h4 class="mb-3">Additional Options</h4>
+                                <div class="form-check mb-2">
+                                    {{ form.seo_optimize(class="form-check-input") }}
+                                    <label class="form-check-label" for="{{ form.seo_optimize.id }}">
+                                        Optimize for SEO
+                                    </label>
+                                    <div class="form-text">{{ form.seo_optimize.description }}</div>
+                                </div>
+                                <div class="form-check">
+                                    {{ form.generate_image(class="form-check-input") }}
+                                    <label class="form-check-label" for="{{ form.generate_image.id }}">
+                                        Generate Featured Image
+                                    </label>
+                                    <div class="form-text">{{ form.generate_image.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary" {% if not ai_settings %}disabled{% endif %}>
+                                <i class="bi bi-magic"></i> Generate Page Content
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript to toggle conditional fields based on page type -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const pageTypeSelect = document.getElementById('{{ form.page_type.id }}');
+        const aboutFields = document.getElementById('about-fields');
+        const contactFields = document.getElementById('contact-fields');
+        const faqFields = document.getElementById('faq-fields');
+        
+        // Initial display based on selected value
+        updatePageTypeFields();
+        
+        // Update on change
+        pageTypeSelect.addEventListener('change', updatePageTypeFields);
+        
+        function updatePageTypeFields() {
+            const selectedValue = pageTypeSelect.value;
+            
+            // Hide all specific fields first
+            aboutFields.style.display = 'none';
+            contactFields.style.display = 'none';
+            faqFields.style.display = 'none';
+            
+            // Show fields based on selection
+            if (selectedValue === 'about') {
+                aboutFields.style.display = 'flex';
+            } else if (selectedValue === 'contact') {
+                contactFields.style.display = 'flex';
+            } else if (selectedValue === 'faq') {
+                faqFields.style.display = 'flex';
+            }
+        }
+    });
+</script>
+{% endblock %}

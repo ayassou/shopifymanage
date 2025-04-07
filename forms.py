@@ -136,3 +136,92 @@ class BlogPostGeneratorForm(FlaskForm):
                                 description='Use AI to generate a featured image (requires image generation capabilities)')
     
     submit = SubmitField('Generate Blog Post')
+
+
+class PageGeneratorForm(FlaskForm):
+    """Form for the AI page content generator"""
+    page_type = SelectField('Page Type',
+                         choices=[
+                             ('about', 'About Us'),
+                             ('contact', 'Contact Us'),
+                             ('faq', 'FAQ'),
+                             ('terms', 'Terms of Service'),
+                             ('privacy', 'Privacy Policy'),
+                             ('returns', 'Return Policy'),
+                             ('shipping', 'Shipping Information')
+                         ],
+                         default='about')
+                         
+    title = StringField('Page Title', 
+                      validators=[Optional()],
+                      description='Optional: Leave blank for AI to generate appropriate title')
+    
+    # Company Information (for About Us, etc.)
+    company_name = StringField('Company/Store Name',
+                             validators=[Optional()],
+                             description='Your company or store name')
+                             
+    company_description = TextAreaField('Company Description',
+                                      validators=[Optional()],
+                                      description='Brief description of your company/store (products, services, mission)')
+                                      
+    industry = StringField('Industry',
+                         validators=[Optional()],
+                         description='E.g., Fashion, Electronics, Health & Beauty, Home Goods')
+                         
+    founding_year = IntegerField('Founding Year',
+                               validators=[Optional(), NumberRange(min=1900, max=2030)],
+                               description='Year your company was founded')
+                               
+    location = StringField('Company Location',
+                         validators=[Optional()],
+                         description='City, State, Country or multiple locations')
+                         
+    values = TextAreaField('Company Values',
+                         validators=[Optional()],
+                         description='Comma-separated list of your company values (e.g., "Sustainability, Quality, Innovation")')
+    
+    # Contact Information (for Contact pages)
+    contact_email = StringField('Contact Email',
+                              validators=[Optional()],
+                              description='Primary contact email for your business')
+                              
+    contact_phone = StringField('Contact Phone',
+                              validators=[Optional()],
+                              description='Main business phone number')
+                              
+    contact_address = TextAreaField('Physical Address',
+                                  validators=[Optional()],
+                                  description='Your business address(es)')
+                                  
+    social_media = TextAreaField('Social Media',
+                               validators=[Optional()],
+                               description='List your social media handles (e.g., "Instagram: @yourstore, Facebook: yourstorefb")')
+    
+    # FAQ fields
+    faq_topics = TextAreaField('FAQ Topics',
+                             validators=[Optional()],
+                             description='Comma-separated list of topics to generate FAQs about (e.g., "shipping, returns, sizing")')
+    
+    # General Page Settings
+    tone = SelectField('Tone of Voice',
+                     choices=[
+                         ('professional', 'Professional'),
+                         ('friendly', 'Friendly & Approachable'),
+                         ('formal', 'Formal & Business-like'),
+                         ('informative', 'Informative'),
+                         ('conversational', 'Conversational')
+                     ],
+                     default='professional')
+                     
+    target_audience = StringField('Target Audience',
+                                validators=[Optional()],
+                                description='Who is your primary customer base?')
+                                
+    seo_optimize = BooleanField('Optimize for SEO', default=True,
+                              description='Generate SEO-friendly meta title, description, and keywords')
+                              
+    generate_image = BooleanField('Generate Featured Image', default=False,
+                                description='Use AI to create an on-brand featured image for this page')
+                                
+    submit = SubmitField('Generate Page Content')

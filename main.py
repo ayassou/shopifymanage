@@ -21,7 +21,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Import models and initialize database
-from models import db, ShopifySettings, UploadHistory, ProductUploadResult, AISettings, BlogPost
+from models import db, ShopifySettings, UploadHistory, ProductUploadResult, AISettings, BlogPost, PageContent
 
 # Initialize the app with the database
 db.init_app(app)

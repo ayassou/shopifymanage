@@ -54,7 +54,7 @@
                            href="{{ url_for('main.upload') }}">Upload Products</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if 'ai_generator' in request.path or 'blog_generator' in request.path %}active{% endif %}" 
+                        <a class="nav-link dropdown-toggle {% if 'ai_generator' in request.path or 'blog_generator' in request.path or 'page_generator' in request.path %}active{% endif %}" 
                            href="#" id="aiDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false">
                            <i class="fas fa-robot me-1"></i> AI Generator
@@ -70,6 +70,12 @@
                                 <a class="dropdown-item {% if request.path == url_for('main.blog_generator') %}active{% endif %}" 
                                    href="{{ url_for('main.blog_generator') }}">
                                    <i class="fas fa-newspaper me-1"></i> Blog Post Generator
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.path == url_for('main.page_generator') %}active{% endif %}" 
+                                   href="{{ url_for('main.page_generator') }}">
+                                   <i class="fas fa-file-alt me-1"></i> Page Generator
                                 </a>
                             </li>
                         </ul>

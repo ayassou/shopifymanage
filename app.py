@@ -7,12 +7,12 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, send_file, Response
 from werkzeug.utils import secure_filename
 import pandas as pd
-from forms import UploadForm, ShopifySettingsForm, AISettingsForm, AIGeneratorForm, BlogPostGeneratorForm
+from forms import UploadForm, ShopifySettingsForm, AISettingsForm, AIGeneratorForm, BlogPostGeneratorForm, PageGeneratorForm
 from data_processor import process_data, validate_data
 from shopify_client import ShopifyClient
 from ai_service import AIService
 from web_scraper import ProductScraper
-from models import db, ShopifySettings, AISettings, UploadHistory, ProductUploadResult, BlogPost
+from models import db, ShopifySettings, AISettings, UploadHistory, ProductUploadResult, BlogPost, PageContent
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -844,3 +844,164 @@ def regenerate_blog_post(post_id=None):
     # Redirect to the generator page
     flash('Please adjust your parameters and generate a new blog post.', 'info')
     return redirect(url_for('main.blog_generator'))
+
+# Page Content Generator Routes
+@app.route('/page/generator', methods=['GET', 'POST'])
+def page_generator():
+    """Route for the page content generator form"""
+    # Check if AI settings exist in the database
+    active_settings = AISettings.query.filter_by(is_active=True).first()
+    form = PageGeneratorForm()
+    
+    if form.validate_on_submit():
+        if not active_settings:
+            flash('Please configure your AI API settings first.', 'warning')
+            return redirect(url_for('main.ai_settings'))
+        
+        try:
+            # Initialize the AI Service
+            ai_service = AIService(api_key=active_settings.api_key, 
+                                  api_provider=active_settings.api_provider)
+            
+            # Record the start time for performance tracking
+            start_time = time.time()
+            
+            # Collect all form data into a dictionary
+            page_params = {
+                'page_type': form.page_type.data,
+                'title': form.title.data,
+                'company_name': form.company_name.data,
+                'company_description': form.company_description.data,
+                'industry': form.industry.data,
+                'founding_year': form.founding_year.data,
+                'location': form.location.data,
+                'values': form.values.data,
+                'contact_email': form.contact_email.data,
+                'contact_phone': form.contact_phone.data,
+                'contact_address': form.contact_address.data,
+                'social_media': form.social_media.data,
+                'faq_topics': form.faq_topics.data,
+                'tone': form.tone.data,
+                'target_audience': form.target_audience.data,
+                'seo_optimize': form.seo_optimize.data,
+                'generate_image': form.generate_image.data
+            }
+            
+            # Generate page content
+            result = ai_service.generate_page_content(page_params)
+            
+            # Calculate generation time
+            generation_time = time.time() - start_time
+            
+            # Create a new PageContent record
+            page_content = PageContent(
+                page_type=page_params['page_type'],
+                title=result.get('title', ''),
+                content=result.get('content', ''),
+                meta_title=result.get('meta_title', ''),
+                meta_description=result.get('meta_description', ''),
+                meta_keywords=result.get('meta_keywords', ''),
+                published=False,
+                generation_time=generation_time,
+                image_url=result.get('image_url', '')
+            )
+            
+            # Save the original parameters as JSON for potential regeneration
+            page_content.parameters = json.dumps(page_params)
+            
+            # Save to database
+            db.session.add(page_content)
+            db.session.commit()
+            
+            # Redirect to the preview page
+            return redirect(url_for('main.page_preview', page_id=page_content.id))
+            
+        except Exception as e:
+            logger.error(f"Error generating page content: {str(e)}")
+            flash(f'Error generating page content: {str(e)}', 'danger')
+    
+    return render_template('page_generator.html', form=form, ai_settings=active_settings)
+
+@app.route('/page/preview/<int:page_id>')
+def page_preview(page_id):
+    """Route for previewing generated page content"""
+    # Get the page content record
+    page_content = PageContent.query.get_or_404(page_id)
+    
+    # Check if shopify settings exist for the publish button
+    has_shopify_settings = ShopifySettings.query.filter_by(is_active=True).first() is not None
+    
+    return render_template('page_preview.html', 
+                          page=page_content, 
+                          has_shopify_settings=has_shopify_settings)
+
+@app.route('/page/publish/<int:page_id>')
+def publish_page(page_id):
+    """Route for publishing a page to Shopify"""
+    # Get the page content record
+    page_content = PageContent.query.get_or_404(page_id)
+    
+    # Get the Shopify settings
+    active_settings = ShopifySettings.query.filter_by(is_active=True).first()
+    if not active_settings:
+        flash('Please configure your Shopify API settings first.', 'warning')
+        return redirect(url_for('main.settings'))
+    
+    try:
+        # Initialize Shopify client
+        shopify_client = ShopifyClient(
+            active_settings.api_key,
+            active_settings.password,
+            active_settings.store_url,
+            active_settings.api_version
+        )
+        
+        # Create page data for Shopify
+        page_data = {
+            'title': page_content.title,
+            'body_html': page_content.content,
+            'published': True,
+            'metafields': [
+                {
+                    'namespace': 'global',
+                    'key': 'title_tag',
+                    'value': page_content.meta_title,
+                    'type': 'single_line_text_field'
+                },
+                {
+                    'namespace': 'global',
+                    'key': 'description_tag',
+                    'value': page_content.meta_description,
+                    'type': 'single_line_text_field'
+                }
+            ]
+        }
+        
+        # Publish to Shopify
+        result = shopify_client.create_page(page_data)
+        
+        # Update the page record with Shopify page ID and published status
+        page_content.shopify_page_id = result.get('id')
+        page_content.published = True
+        page_content.publish_date = datetime.utcnow()
+        db.session.commit()
+        
+        flash('Page successfully published to Shopify!', 'success')
+        return redirect(url_for('main.page_preview', page_id=page_id))
+        
+    except Exception as e:
+        logger.error(f"Error publishing page to Shopify: {str(e)}")
+        flash(f'Error publishing to Shopify: {str(e)}', 'danger')
+        return redirect(url_for('main.page_preview', page_id=page_id))
+
+@app.route('/page/regenerate/<int:page_id>')
+def regenerate_page(page_id=None):
+    """Route for regenerating a page with different parameters"""
+    # If a page ID is provided, store its parameters for pre-filling the form
+    if page_id:
+        page = PageContent.query.get_or_404(page_id)
+        # Todo: Store parameters in session for pre-filling the form
+    
+    # Redirect to the generator page
+    flash('Please adjust your parameters and generate a new page.', 'info')
+    return redirect(url_for('main.page_generator'))

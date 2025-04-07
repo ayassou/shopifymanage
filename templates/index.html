@@ -84,6 +84,39 @@
                     </div>
                 </div>
                 
+                <!-- Content Generators Section -->
+                <hr class="my-4">
+                <h3 class="text-center mb-4">Content Generators</h3>
+                <p class="text-center mb-4">Create various types of content for your Shopify store with AI assistance.</p>
+                
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-dark border-success">
+                            <div class="card-body text-center">
+                                <i class="fas fa-pen-fancy fa-3x mb-3 text-success"></i>
+                                <h5 class="card-title">Blog Post Generator</h5>
+                                <p class="card-text">Create engaging, SEO-optimized blog posts for your Shopify store. Customize tone, length, and style.</p>
+                                <a href="{{ url_for('main.blog_generator') }}" class="btn btn-outline-success mt-2">
+                                    <i class="fas fa-feather-alt me-2"></i> Create Blog Posts
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-dark border-info">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-alt fa-3x mb-3 text-info"></i>
+                                <h5 class="card-title">Static Page Generator</h5>
+                                <p class="card-text">Generate professional content for About Us, FAQ, Contact pages, and more. Customized to your brand.</p>
+                                <a href="{{ url_for('main.page_generator') }}" class="btn btn-outline-info mt-2">
+                                    <i class="fas fa-file-invoice me-2"></i> Create Pages
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 {% if recent_uploads %}
                 <hr class="my-4">
                 <h3 class="h4 mb-3">Recent Uploads</h3>

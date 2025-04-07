@@ -694,6 +694,206 @@ class AIService:
             logger.error(f"Failed to generate blog post: {str(e)}")
             raise
     
+    def generate_page_content(self, page_params):
+        """
+        Generate content for a static page based on input parameters.
+        
+        Args:
+            page_params (dict): Parameters for page generation including type, company info, etc.
+            
+        Returns:
+            dict: Generated page content data
+        """
+        try:
+            logger.debug(f"Generating page content for page type: {page_params.get('page_type', 'Unspecified')}")
+            
+            # Extract parameters
+            page_type = page_params.get('page_type', 'about')
+            title = page_params.get('title')
+            company_name = page_params.get('company_name', '')
+            company_description = page_params.get('company_description', '')
+            industry = page_params.get('industry', '')
+            founding_year = page_params.get('founding_year', '')
+            location = page_params.get('location', '')
+            company_values = page_params.get('values', '')
+            tone = page_params.get('tone', 'professional')
+            target_audience = page_params.get('target_audience', '')
+            
+            # Contact page parameters
+            contact_email = page_params.get('contact_email', '')
+            contact_phone = page_params.get('contact_phone', '')
+            contact_address = page_params.get('contact_address', '')
+            social_media = page_params.get('social_media', '')
+            
+            # FAQ parameters
+            faq_topics = page_params.get('faq_topics', '')
+            
+            # Page type specific instructions
+            page_type_instructions = {
+                'about': "Create an engaging About Us page that tells the company's story, mission, vision, and values.",
+                'contact': "Design a clear Contact Us page with all contact information and a brief message encouraging visitors to reach out.",
+                'faq': "Develop a comprehensive FAQ page addressing common customer questions with clear, helpful answers.",
+                'terms': "Draft professionally-worded Terms of Service covering standard legal aspects of website and store usage.",
+                'privacy': "Create a thorough Privacy Policy explaining how customer data is collected, used, and protected.",
+                'returns': "Detail the store's return and refund policies in a customer-friendly, clear manner.",
+                'shipping': "Explain shipping methods, timeframes, costs, and policies in an organized format."
+            }
+            
+            # Tone mapping
+            tone_instructions = {
+                'professional': "Use formal, polished language appropriate for business contexts.",
+                'friendly': "Write in a warm, approachable tone that feels welcoming to visitors.",
+                'formal': "Employ precise, business-like language suitable for legal or policy documents.",
+                'informative': "Focus on clear, factual communication that prioritizes information delivery.",
+                'conversational': "Use a casual, personable tone as if speaking directly to the visitor."
+            }
+            
+            # Build the prompt based on page type
+            content_instruction = page_type_instructions.get(page_type, page_type_instructions['about'])
+            tone_instruction = tone_instructions.get(tone, tone_instructions['professional'])
+            
+            # If title is provided, use it; otherwise, instruct AI to generate one
+            title_instruction = f"Use this title: '{title}'" if title else "Generate an appropriate page title."
+            
+            # Base company information for context
+            company_context = f"""
+            Company/Store Name: {company_name if company_name else "[Company Name]"}
+            Industry: {industry if industry else "Unspecified"}
+            Description: {company_description if company_description else "Unspecified"}
+            Founded: {founding_year if founding_year else "Unspecified"}
+            Location: {location if location else "Unspecified"}
+            Values: {company_values if company_values else "Unspecified"}
+            Target Audience: {target_audience if target_audience else "General customers"}
+            """
+            
+            # Page type specific contexts
+            type_specific_context = ""
+            if page_type == 'contact':
+                type_specific_context = f"""
+                Contact Information:
+                Email: {contact_email if contact_email else "[Contact Email]"}
+                Phone: {contact_phone if contact_phone else "[Contact Phone]"}
+                Address: {contact_address if contact_address else "[Contact Address]"}
+                Social Media: {social_media if social_media else "[Social Media Handles]"}
+                """
+            elif page_type == 'faq':
+                type_specific_context = f"""
+                FAQ Topics to Cover: {faq_topics if faq_topics else "Common customer questions about products, ordering, shipping, returns, etc."}
+                """
+            
+            # Build the prompt
+            prompt = f"""
+            Generate content for a {page_type.replace('_', ' ').title()} page for an e-commerce store.
+            
+            {title_instruction}
+            
+            Company Information:
+            {company_context}
+            
+            {type_specific_context}
+            
+            Content approach: {content_instruction}
+            Tone of voice: {tone_instruction}
+            
+            Format the response as a JSON object with the following fields:
+            - title: The page title
+            - content: The full page content with HTML formatting (use <h2>, <h3>, <p>, <ul>, <li> tags appropriately)
+            - summary: A 1-2 sentence summary of the page's purpose
+            - meta_title: SEO-optimized title (60-70 characters)
+            - meta_description: Compelling meta description (150-160 characters)
+            - meta_keywords: 5-8 relevant keywords separated by commas
+            - url_handle: SEO-friendly URL slug (lowercase, hyphens instead of spaces)
+            """
+            
+            # Add FAQ-specific instruction if needed
+            if page_type == 'faq':
+                prompt += """
+                - faq_items: An array of objects with "question" and "answer" fields
+                """
+            
+            # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+            # do not change this unless explicitly requested by the user
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}
+            )
+            
+            # Parse the response
+            result = json.loads(response.choices[0].message.content)
+            
+            # Add some metadata
+            result['generated_at'] = datetime.datetime.now().isoformat()
+            result['page_type'] = page_type
+            result['generation_params'] = {
+                'company_name': company_name,
+                'industry': industry,
+                'tone': tone
+            }
+            
+            logger.debug(f"Successfully generated page content: {result.get('title', 'Untitled')}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to generate page content: {str(e)}")
+            raise
+    
+    def generate_page_image(self, page_type, title, company_info):
+        """
+        Generate a featured image for a static page.
+        
+        Args:
+            page_type (str): The type of page (about, contact, etc.)
+            title (str): The page title
+            company_info (str): Brief company information
+            
+        Returns:
+            str: URL or base64 data of the generated image
+        """
+        try:
+            logger.debug(f"Generating featured image for {page_type} page: {title}")
+            
+            # Create a descriptive prompt for the image based on page type
+            image_prompts = {
+                'about': f"Create a professional image representing a company about page for {company_info}. Show elements that convey trust, professionalism, and company culture.",
+                'contact': "Create a clean, professional image for a contact page with subtle visual elements like message icons, phones, or communication themes.",
+                'faq': "Create a simple, clean image representing a FAQ or help section with subtle question mark visuals or people finding solutions.",
+                'terms': "Create a professional, subtle image for terms of service or legal page with elements suggesting agreement, security, or protection.",
+                'privacy': "Create a minimalist image representing data privacy and protection with subtle visual elements like shields or locks.",
+                'returns': "Create a simple image representing a product return policy with subtle visual elements of packages or customer service.",
+                'shipping': "Create a professional image representing shipping and delivery with subtle visual elements of packages, trucks, or global delivery."
+            }
+            
+            # Get the appropriate prompt based on page type
+            image_prompt = image_prompts.get(page_type, image_prompts['about'])
+            
+            # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+            # do not change this unless explicitly requested by the user
+            response = self.client.images.generate(
+                model="dall-e-3",
+                prompt=image_prompt,
+                n=1,
+                size="1024x1024"
+            )
+            
+            # Get the URL of the generated image
+            image_url = response.data[0].url
+            
+            # Download the image
+            image_response = requests.get(image_url)
+            image_response.raise_for_status()
+            
+            # Convert to base64 for storage
+            image_data = base64.b64encode(image_response.content).decode('utf-8')
+            
+            logger.debug("Successfully generated page image")
+            return f"data:image/png;base64,{image_data}"
+            
+        except Exception as e:
+            logger.error(f"Failed to generate page image: {str(e)}")
+            # Return None without failing the whole process
+            return None
+            
     def generate_blog_image(self, title, content_summary):
         """
         Generate a featured image for a blog post.
