@@ -3,7 +3,7 @@
  */
 
 // Document ready function
-window.showLoading = (button, formData) => {
+const showLoading = (button, formData) => {
     const timeout = calculateTimeout(formData);
 
     // Create stop button
@@ -43,6 +43,47 @@ window.showLoading = (button, formData) => {
         timeoutNotif.style.display = 'block';
     }, timeout);
 };
+
+const calculateTimeout = (formData) => {
+    // Base timeout 120 seconds
+    let timeout = 120000;
+
+    // Add time based on form type and data
+    if (window.location.pathname.includes('ai_generator')) {
+        // Add time for URL scraping if needed
+        if (formData.get('input_type') === 'url') {
+            timeout += 60000; // 60s for web scraping
+        }
+        const variantCount = parseInt(formData.get('variant_count')) || 1;
+        timeout += variantCount * 45000; // 45s per variant
+    } else if (window.location.pathname.includes('blog_generator')) {
+        const wordCount = parseInt(formData.get('word_count')) || 1000;
+        timeout += Math.floor(wordCount / 100) * 15000; // 15s per 100 words
+    } else if (window.location.pathname.includes('page_generator')) {
+        timeout += 180000; // Additional 180s for page generation
+    }
+
+    return timeout;
+};
+
+const hideLoading = () => {
+    loadingIndicator.style.display = 'none';
+    // Re-enable all generate buttons
+    document.querySelectorAll('button[type="submit"]').forEach(button => {
+        button.disabled = false;
+        button.classList.remove('button-loading');
+        // Restore original text
+        if (button.dataset.originalText) {
+            button.innerHTML = button.dataset.originalText;
+        }
+        // Remove stop button if exists
+        const stopBtn = button.nextElementSibling;
+        if (stopBtn && stopBtn.classList.contains('stop-generation')) {
+            button.parentNode.removeChild(stopBtn);
+        }
+    });
+};
+
 
 document.addEventListener('DOMContentLoaded', function() {
     // Enable Bootstrap tooltips
@@ -85,86 +126,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadingIndicator.innerHTML = '<p>Generating Product...</p>';
     document.body.appendChild(loadingIndicator);
 
-    const calculateTimeout = (formData) => {
-        // Base timeout 120 seconds
-        let timeout = 120000;
-
-        // Add time based on form type and data
-        if (window.location.pathname.includes('ai_generator')) {
-            // Add time for URL scraping if needed
-            if (formData.get('input_type') === 'url') {
-                timeout += 60000; // 60s for web scraping
-            }
-            const variantCount = parseInt(formData.get('variant_count')) || 1;
-            timeout += variantCount * 45000; // 45s per variant
-        } else if (window.location.pathname.includes('blog_generator')) {
-            const wordCount = parseInt(formData.get('word_count')) || 1000;
-            timeout += Math.floor(wordCount / 100) * 15000; // 15s per 100 words
-        } else if (window.location.pathname.includes('page_generator')) {
-            timeout += 180000; // Additional 180s for page generation
-        }
-
-        return timeout;
-    };
-
-    const showLoading = (button, formData) => {
-        const timeout = calculateTimeout(formData);
-
-        // Create button container
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'button-container d-flex align-items-center gap-2';
-        button.parentNode.insertBefore(buttonContainer, button);
-        buttonContainer.appendChild(button);
-
-        // Create stop button
-        const stopBtn = document.createElement('button');
-        stopBtn.className = 'btn btn-sm btn-outline-danger stop-generation';
-        stopBtn.innerHTML = '<i class="fas fa-times"></i>';
-        stopBtn.title = 'Stop Generation';
-        stopBtn.onclick = () => {
-            if (confirm('Are you sure you want to stop the generation?')) {
-                window.location.reload();
-            }
-        };
-        buttonContainer.appendChild(stopBtn);
-
-        // Create timeout notification
-        const timeoutNotif = document.createElement('div');
-        timeoutNotif.className = 'timeout-notification text-warning';
-        timeoutNotif.innerHTML = '<i class="fas fa-clock me-2"></i>Taking longer than expected...';
-        timeoutNotif.style.display = 'none';
-        buttonContainer.appendChild(timeoutNotif);
-
-        // Store original text and disable button
-        button.disabled = true;
-        button.classList.add('button-loading');
-        button.dataset.originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
-
-        // Show stop button and notification after timeout
-        setTimeout(() => {
-            stopBtn.classList.add('visible');
-            timeoutNotif.style.display = 'inline-block';
-        }, timeout);
-    };
-
-    const hideLoading = () => {
-        loadingIndicator.style.display = 'none';
-        // Re-enable all generate buttons
-        document.querySelectorAll('button[type="submit"]').forEach(button => {
-            button.disabled = false;
-            button.classList.remove('button-loading');
-            // Restore original text
-            if (button.dataset.originalText) {
-                button.innerHTML = button.dataset.originalText;
-            }
-            // Remove stop button if exists
-            const stopBtn = button.nextElementSibling;
-            if (stopBtn && stopBtn.classList.contains('stop-generation')) {
-                button.parentNode.removeChild(stopBtn);
-            }
-        });
-    };
 
     // Add form submission handlers to all generator forms
     document.querySelectorAll('form').forEach(form => {
@@ -181,27 +142,33 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitButton = this.querySelector('button[type="submit"]');
-            showLoading(submitButton, new FormData(this));
+            const formData = new FormData(this);
+            showLoading(submitButton, formData);
 
             try {
-                //Simulate API call - Replace with your actual API call
-                const response = await fetch('/api/generateProduct', {
+                const response = await fetch(this.action, {
                     method: 'POST',
-                    body: new FormData(this) // Assumes form uses FormData
+                    body: formData
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'An unexpected error occurred.');
+                    throw new Error('Generation failed');
                 }
 
-                const data = await response.json();
-                // Handle successful response
-                console.log('Product generated successfully:', data);
-                alert('Product generated successfully!');
+                // Redirect to results or handle response
+                const result = await response.json();
+                if (result.redirect) {
+                    window.location.href = result.redirect;
+                }
             } catch (error) {
-                console.error('Error generating product:', error);
-                alert('Error generating product: ' + error.message);
+                console.error('Generation error:', error);
+                // Show error state but keep stop button visible
+                const timeoutNotif = document.querySelector('.timeout-notification');
+                if (timeoutNotif) {
+                    timeoutNotif.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Generation failed';
+                    timeoutNotif.style.display = 'inline-block';
+                    timeoutNotif.classList.add('text-danger');
+                }
             } finally {
                 hideLoading();
             }
