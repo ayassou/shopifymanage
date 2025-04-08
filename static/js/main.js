@@ -3,6 +3,47 @@
  */
 
 // Document ready function
+window.showLoading = (button, formData) => {
+    const timeout = calculateTimeout(formData);
+
+    // Create stop button
+    const stopBtn = document.createElement('button');
+    stopBtn.className = 'btn btn-sm btn-outline-danger stop-generation';
+    stopBtn.innerHTML = '<i class="fas fa-times"></i>';
+    stopBtn.title = 'Stop Generation';
+    stopBtn.onclick = () => {
+        if (confirm('Are you sure you want to stop the generation?')) {
+            window.location.reload();
+        }
+    };
+
+    // Create timeout notification
+    const timeoutNotif = document.createElement('div');
+    timeoutNotif.className = 'timeout-notification';
+    timeoutNotif.innerHTML = '<i class="fas fa-clock me-2"></i>Taking longer than expected...';
+    timeoutNotif.style.display = 'none';
+
+    // Store original text and disable button
+    button.disabled = true;
+    button.classList.add('button-loading');
+    button.dataset.originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+
+    // Add stop button and notification after the generate button
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'button-container';
+    button.parentNode.insertBefore(buttonContainer, button.nextSibling);
+    buttonContainer.appendChild(button);
+    buttonContainer.appendChild(stopBtn);
+    buttonContainer.appendChild(timeoutNotif);
+
+    // Show stop button and notification after timeout
+    setTimeout(() => {
+        stopBtn.classList.add('visible');
+        timeoutNotif.style.display = 'block';
+    }, timeout);
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Enable Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
