@@ -2,8 +2,31 @@
  * Main JavaScript file for Shopify Product Uploader
  */
 
-// Document ready function
-const showLoading = (button, formData) => {
+// Calculate timeout based on form data and page type
+window.calculateTimeout = (formData) => {
+    // Base timeout 120 seconds
+    let timeout = 120000;
+
+    // Add time based on form type and data
+    if (window.location.pathname.includes('ai_generator')) {
+        // Add time for URL scraping if needed
+        if (formData.get('input_type') === 'url') {
+            timeout += 60000; // 60s for web scraping
+        }
+        const variantCount = parseInt(formData.get('variant_count')) || 1;
+        timeout += variantCount * 45000; // 45s per variant
+    } else if (window.location.pathname.includes('blog_generator')) {
+        const wordCount = parseInt(formData.get('word_count')) || 1000;
+        timeout += Math.floor(wordCount / 100) * 15000; // 15s per 100 words
+    } else if (window.location.pathname.includes('page_generator')) {
+        timeout += 180000; // Additional 180s for page generation
+    }
+
+    return timeout;
+};
+
+// Show loading state and handle timeouts
+window.showLoading = (button, formData) => {
     const timeout = calculateTimeout(formData);
 
     // Create stop button
@@ -44,28 +67,6 @@ const showLoading = (button, formData) => {
     }, timeout);
 };
 
-const calculateTimeout = (formData) => {
-    // Base timeout 120 seconds
-    let timeout = 120000;
-
-    // Add time based on form type and data
-    if (window.location.pathname.includes('ai_generator')) {
-        // Add time for URL scraping if needed
-        if (formData.get('input_type') === 'url') {
-            timeout += 60000; // 60s for web scraping
-        }
-        const variantCount = parseInt(formData.get('variant_count')) || 1;
-        timeout += variantCount * 45000; // 45s per variant
-    } else if (window.location.pathname.includes('blog_generator')) {
-        const wordCount = parseInt(formData.get('word_count')) || 1000;
-        timeout += Math.floor(wordCount / 100) * 15000; // 15s per 100 words
-    } else if (window.location.pathname.includes('page_generator')) {
-        timeout += 180000; // Additional 180s for page generation
-    }
-
-    return timeout;
-};
-
 const hideLoading = () => {
     loadingIndicator.style.display = 'none';
     // Re-enable all generate buttons
@@ -88,13 +89,13 @@ const hideLoading = () => {
 document.addEventListener('DOMContentLoaded', function() {
     // Enable Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
     // Enable Bootstrap popovers
     var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+    var popoverList = popoverTriggerList.map(function(popoverTriggerEl) {
         return new bootstrap.Popover(popoverTriggerEl);
     });
 
