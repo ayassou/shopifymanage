@@ -54,7 +54,10 @@ class AIService:
         logger.info(f"Input data summary: {str(input_data)[:100]}...")
         logger.info(f"Requested variants: {num_variants}")
         
-        Args:
+        """
+        Central method to generate product data based on input type and data.
+        
+        Parameters:
             input_type (str): Type of input ('url', 'text', or 'partial_data')
             input_data (str or dict): The input data (URL, text description, or partial product data)
             num_variants (int): Number of product variants to generate

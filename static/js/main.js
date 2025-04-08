@@ -2,60 +2,33 @@
  * Main JavaScript file for Shopify Product Uploader
  */
 
-// Utility function to calculate timeout based on form data
+// Debug logging setup
+const debug = true;
+const log = (msg) => {
+    if (debug) console.log(`[DEBUG] ${msg}`);
+};
+
+// Calculate timeout based on form data
 function calculateTimeout(formData) {
-    let timeout = 120000; // Base timeout: 120 seconds
-    let url = formData.get('product_url');
-    if (url) {
-        timeout += 30000; // Add 30s for URL scraping
-    }
-    let variantCount = formData.get('variant_count') || 1;
-    timeout += variantCount * 20000; // 20s per variant
-
-    return timeout;
+    // Base timeout of 2 minutes
+    return 120000;
 }
 
+// Show loading state
 function showLoading(button, formData) {
-    console.log('[DEBUG] Starting loading state...');
-    const timeout = calculateTimeout(formData);
-    console.log(`[DEBUG] Calculated timeout: ${timeout}ms`);
+    console.log('Starting loading process...');
+    const originalText = button.innerHTML;
 
-    // Create loading indicator
-    const loadingIndicator = document.createElement('div');
-    loadingIndicator.className = 'loading-indicator';
-    loadingIndicator.innerHTML = `
-        <div class="progress-wrapper">
-            <span class="status-text">Generating...</span>
-            <div class="spinner-border spinner-border-sm text-primary ms-2" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
-    `;
-
-    // Add stop button
-    const stopButton = document.createElement('button');
-    stopButton.className = 'btn btn-sm btn-outline-danger ms-2';
-    stopButton.innerHTML = '<i class="fas fa-stop"></i> Stop';
-    stopButton.onclick = (e) => {
-        e.preventDefault();
-        window.location.reload();
-    };
-    loadingIndicator.querySelector('.progress-wrapper').appendChild(stopButton);
-
-    // Replace button content
     button.disabled = true;
-    button.innerHTML = loadingIndicator.outerHTML;
-    console.log('[DEBUG] Button state updated');
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
 
-    // Show timeout notification after the calculated timeout
-    setTimeout(() => {
-        console.log('[DEBUG] Timeout reached, showing notification');
-        const timeoutDiv = document.createElement('div');
-        timeoutDiv.className = 'alert alert-warning mt-2';
-        timeoutDiv.innerHTML = '<i class="fas fa-clock me-2"></i>Taking longer than expected...';
-        button.parentNode.appendChild(timeoutDiv);
-    }, timeout);
+    // Return cleanup function
+    return () => {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    };
 }
+
 
 // Add form submission handler
 document.addEventListener('DOMContentLoaded', () => {
@@ -102,31 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add form submission handler
     // Global console logging setup
-    const debug = true;
-    const log = (msg) => {
-        if (debug) console.log(`[DEBUG] ${msg}`);
-    };
-
-    // Global function to calculate timeout based on form data
-    window.calculateTimeout = (formData) => {
-        // Base timeout of 2 minutes
-        return 120000;
-    };
-
-    // Global loading function
-    window.showLoading = (button, formData) => {
-        console.log('Starting loading process...');
-        const originalText = button.innerHTML;
-        
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-        
-        // Return cleanup function
-        return () => {
-            button.disabled = false;
-            button.innerHTML = originalText;
-        };
-    };
 
     // Add form submission handler
     document.addEventListener('DOMContentLoaded', () => {
@@ -155,18 +103,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         // Logging utility
-    const log = (msg) => {
+    const log2 = (msg) => {
         console.log(`[Client] ${msg}`);
     };
 
     // Calculate timeout based on form data
-    const calculateTimeout = (formData) => {
+    const calculateTimeout2 = (formData) => {
         return 120000; // 2 minutes default timeout
     };
 
     // Loading state handler
-    const showLoading = (button, formData) => {
-        log('Starting generation process...');
+    const showLoading2 = (button, formData) => {
+        log2('Starting generation process...');
 
         // Create loading indicator
         const loadingIndicator = document.createElement('div');
@@ -187,12 +135,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const originalText = button.innerHTML;
         button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
 
-        log('UI updated to loading state');
+        log2('UI updated to loading state');
         return originalText;
     };
 
-    const hideLoading = () => {
-        log('Generation process completed');
+    const hideLoading2 = () => {
+        log2('Generation process completed');
         const loadingIndicator = document.getElementById('loading-indicator');
         if (loadingIndicator) {
             loadingIndicator.remove();
@@ -216,12 +164,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const submitButton = this.querySelector('button[type="submit"]');
             const formData = new FormData(this);
 
-            log('Form submitted - collecting data');
+            log2('Form submitted - collecting data');
             formData.forEach((value, key) => {
-                log(`Form field: ${key} = ${value}`);
+                log2(`Form field: ${key} = ${value}`);
             });
 
-            const originalText = showLoading(submitButton, formData);
+            const originalText = showLoading2(submitButton, formData);
 
                 try {
                     const response = await fetch(this.action, {
@@ -248,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         timeoutNotif.classList.add('text-danger');
                     }
                 } finally {
-                    hideLoading();
+                    hideLoading2();
                 }
             });
         }
