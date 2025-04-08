@@ -107,6 +107,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (debug) console.log(`[DEBUG] ${msg}`);
     };
 
+    // Global function to calculate timeout based on form data
+    window.calculateTimeout = (formData) => {
+        // Base timeout of 2 minutes
+        return 120000;
+    };
+
+    // Global loading function
+    window.showLoading = (button, formData) => {
+        console.log('Starting loading process...');
+        const originalText = button.innerHTML;
+        
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        
+        // Return cleanup function
+        return () => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        };
+    };
+
     // Add form submission handler
     document.addEventListener('DOMContentLoaded', () => {
         log('Page loaded, initializing form handlers...');

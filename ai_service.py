@@ -1316,7 +1316,7 @@ class AIService:
             user_prompt += """
             
             - caption: A detailed, marketing-focused caption (1-2 paragraphs) describing the 
-              product's visual appearance, style, and key visible features
+              product\'s visual appearance, style, and key visible features
             """
             
             if include_seo:
