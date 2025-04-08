@@ -168,8 +168,10 @@ class AIService:
                 response_format={"type": "json_object"}
             )
             
-            # Parse the response
+            # Parse and log the response
             result = json.loads(response.choices[0].message.content)
+            logger.info(f"AI Response for URL {url}:")
+            logger.info(json.dumps(result, indent=2))
             logger.debug(f"Successfully extracted product data from {url}")
             return result
             

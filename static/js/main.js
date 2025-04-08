@@ -8,57 +8,41 @@ const log = (msg) => {
     if (debug) console.log(`[DEBUG] ${msg}`);
 };
 
-// Make functions available globally
-window.calculateTimeout = (formData) => {
-    return 120000; // 2 minutes default timeout
-};
+// Calculate timeout based on form data
+function calculateTimeout(formData) {
+    console.log("[DEBUG] Calculating timeout...");
+    // Base timeout of 2 minutes
+    return 120000;
+}
 
-window.showLoading = (button, formData) => {
-    log('Starting generation process...');
-    const originalText = button.innerHTML;
+// Show loading state with progress
+function showLoading(button, formData) {
+    console.log("[DEBUG] Showing loading state...");
+    const timeout = calculateTimeout(formData);
 
-    // Create loading indicator
-    const loadingIndicator = document.createElement('div');
-    loadingIndicator.id = 'loading-indicator';
-    loadingIndicator.innerHTML = `
-        <div class="loading-spinner">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
+    // Create loading overlay
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.classList.add('loading-overlay');
+    loadingOverlay.innerHTML = `
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
-        <p>Processing your request...</p>
+        <p class="mt-2">Generating product data...</p>
     `;
-    document.body.appendChild(loadingIndicator);
+    document.body.appendChild(loadingOverlay);
 
     // Update button state
     button.disabled = true;
-    button.classList.add('button-loading');
-    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
-
-    // Show timeout notification after calculated timeout
-    setTimeout(() => {
-        log('Timeout reached, showing notification');
-        const timeoutNotif = document.createElement('div');
-        timeoutNotif.className = 'timeout-notification';
-        timeoutNotif.innerHTML = '<i class="fas fa-clock me-2"></i>Taking longer than expected...';
-        button.parentNode.appendChild(timeoutNotif);
-    }, window.calculateTimeout(formData));
+    const originalText = button.innerHTML;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...';
 
     // Return cleanup function
     return () => {
+        loadingOverlay.remove();
         button.disabled = false;
-        button.classList.remove('button-loading');
         button.innerHTML = originalText;
-        const loadingIndicator = document.getElementById('loading-indicator');
-        if (loadingIndicator) {
-            loadingIndicator.remove();
-        }
-        const timeoutNotif = button.parentNode.querySelector('.timeout-notification');
-        if (timeoutNotif) {
-            timeoutNotif.remove();
-        }
     };
-};
+}
 
 // Initialize page when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -98,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             log('Form submitted, processing...');
             const generateButton = e.submitter;
             if (generateButton && generateButton.classList.contains('generate-button')) {
-                const cleanup = window.showLoading(generateButton, new FormData(form));
+                const cleanup = showLoading(generateButton, new FormData(form));
                 //Example of how to use cleanup function after fetch.  Could be improved.
                 // fetch(form.action, {method: 'POST', body: new FormData(form)})
                 // .then(response => {
