@@ -833,8 +833,8 @@ class AIService:
             
             Format the response as a JSON object with the following fields:
             - title: The page title
-            - content: The full page content with HTML formatting (use <h2>, <h3>, <p>, <ul>, <li> tags appropriately)
-            - summary: A 1-2 sentence summary of the page's purpose
+            - content: The full page content with HTML formatting (use h2, h3, p, ul, li tags appropriately)
+            - summary: A 1-2 sentence summary of the page purpose
             - meta_title: SEO-optimized title (60-70 characters)
             - meta_description: Compelling meta description (150-160 characters)
             - meta_keywords: 5-8 relevant keywords separated by commas
