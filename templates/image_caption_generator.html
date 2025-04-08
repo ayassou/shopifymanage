@@ -207,6 +207,13 @@
                         <div class="text-end">
                             <button type="submit" class="btn btn-primary">Generate Image Captions</button>
                         </div>
+                        <script>
+                            document.querySelector('form').addEventListener('submit', function() {
+                                if (this.checkValidity()) {
+                                    showLoading();
+                                }
+                            });
+                        </script>
                     </form>
                 </div>
             </div>

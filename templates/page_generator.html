@@ -165,6 +165,13 @@
                                 <i class="bi bi-magic"></i> Generate Page Content
                             </button>
                         </div>
+                        <script>
+                            document.querySelector('form').addEventListener('submit', function() {
+                                if (this.checkValidity()) {
+                                    showLoading();
+                                }
+                            });
+                        </script>
                     </form>
                 </div>
             </div>

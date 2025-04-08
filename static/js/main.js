@@ -45,12 +45,39 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.appendChild(loadingIndicator);
 
     const showLoading = () => {
-        loadingIndicator.style.display = 'block';
+        loadingIndicator.style.display = 'flex';
+        // Disable all generate buttons
+        document.querySelectorAll('button[type="submit"]').forEach(button => {
+            button.disabled = true;
+            button.classList.add('button-loading');
+            // Store original text
+            button.dataset.originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+        });
     };
 
     const hideLoading = () => {
         loadingIndicator.style.display = 'none';
+        // Re-enable all generate buttons
+        document.querySelectorAll('button[type="submit"]').forEach(button => {
+            button.disabled = false;
+            button.classList.remove('button-loading');
+            // Restore original text
+            if (button.dataset.originalText) {
+                button.innerHTML = button.dataset.originalText;
+            }
+        });
     };
+
+    // Add form submission handlers to all generator forms
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (!this.checkValidity()) {
+                return;
+            }
+            showLoading();
+        });
+    });
 
 
     const form = document.getElementById('store-creation-form');

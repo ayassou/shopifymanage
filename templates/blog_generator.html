@@ -203,8 +203,15 @@
                     </div>
                     
                     <div class="d-grid gap-2">
-                        {{ form.submit(class="btn btn-primary btn-lg") }}
+                        {{ form.submit(class="btn btn-primary btn-lg", type="submit") }}
                     </div>
+                    <script>
+                        document.querySelector('form').addEventListener('submit', function() {
+                            if (this.checkValidity()) {
+                                showLoading();
+                            }
+                        });
+                    </script>
                 </form>
             </div>
         </div>
