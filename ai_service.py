@@ -120,17 +120,17 @@ class AIService:
             # Validate URL format
             parsed_url = urlparse(url)
             if not all([parsed_url.scheme, parsed_url.netloc]):
-                raise ValueError("Invalid URL format")
+                raise ValueError("Please enter a valid URL starting with http:// or https://")
             
             # Fetch the page content using trafilatura
             downloaded = trafilatura.fetch_url(url)
             if not downloaded:
-                raise ValueError(f"Failed to download content from {url}")
+                raise ValueError(f"Unable to access {url}. Please check if the URL is correct and accessible.")
             
             # Extract main text content
             extracted_text = trafilatura.extract(downloaded)
             if not extracted_text:
-                raise ValueError(f"Failed to extract text content from {url}")
+                raise ValueError(f"No content could be extracted from {url}. Please ensure it's a valid product page.")
             
             # Use AI to extract structured product information from the text
             prompt = f"""

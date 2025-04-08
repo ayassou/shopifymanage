@@ -507,9 +507,13 @@ def ai_generator():
             # Redirect to the preview page
             return redirect(url_for('main.ai_preview'))
             
+        except ValueError as e:
+            logger.error(f"Validation error: {str(e)}")
+            flash(str(e), 'warning')
+            return render_template('ai_generator.html', form=form, ai_settings=active_settings)
         except Exception as e:
             logger.error(f"Error generating product data: {str(e)}")
-            flash(f'Error generating product data: {str(e)}', 'danger')
+            flash('An unexpected error occurred while processing your request. Please try again.', 'danger')
             return render_template('ai_generator.html', form=form, ai_settings=active_settings)
     
     return render_template('ai_generator.html', form=form, ai_settings=active_settings)
