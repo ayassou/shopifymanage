@@ -101,11 +101,27 @@ body {
     margin-right: 8px;
 }
 
+.button-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .stop-generation {
     display: none;
-    margin-left: 10px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+    align-items: center;
 }
 
 .stop-generation.visible {
-    display: inline-block;
+    display: flex;
+}
+
+.timeout-notification {
+    font-size: 0.875rem;
+    color: #ffc107;
 }

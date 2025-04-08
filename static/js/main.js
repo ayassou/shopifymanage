@@ -86,18 +86,22 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.appendChild(loadingIndicator);
 
     const calculateTimeout = (formData) => {
-        // Base timeout 30 seconds
-        let timeout = 30000;
+        // Base timeout 120 seconds
+        let timeout = 120000;
 
         // Add time based on form type and data
         if (window.location.pathname.includes('ai_generator')) {
-            const variantCount = formData.get('variant_count') || 1;
-            timeout += variantCount * 10000; // 10s per variant
+            // Add time for URL scraping if needed
+            if (formData.get('input_type') === 'url') {
+                timeout += 60000; // 60s for web scraping
+            }
+            const variantCount = parseInt(formData.get('variant_count')) || 1;
+            timeout += variantCount * 45000; // 45s per variant
         } else if (window.location.pathname.includes('blog_generator')) {
-            const wordCount = formData.get('word_count') || 1000;
-            timeout += Math.floor(wordCount / 100) * 5000; // 5s per 100 words
+            const wordCount = parseInt(formData.get('word_count')) || 1000;
+            timeout += Math.floor(wordCount / 100) * 15000; // 15s per 100 words
         } else if (window.location.pathname.includes('page_generator')) {
-            timeout += 45000; // Additional 45s for page generation
+            timeout += 180000; // Additional 180s for page generation
         }
 
         return timeout;
@@ -106,15 +110,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const showLoading = (button, formData) => {
         const timeout = calculateTimeout(formData);
 
+        // Create button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'button-container d-flex align-items-center gap-2';
+        button.parentNode.insertBefore(buttonContainer, button);
+        buttonContainer.appendChild(button);
+
         // Create stop button
         const stopBtn = document.createElement('button');
-        stopBtn.className = 'btn btn-danger stop-generation';
-        stopBtn.innerHTML = '<i class="fas fa-times me-2"></i>Stop Generation';
+        stopBtn.className = 'btn btn-sm btn-outline-danger stop-generation';
+        stopBtn.innerHTML = '<i class="fas fa-times"></i>';
+        stopBtn.title = 'Stop Generation';
         stopBtn.onclick = () => {
             if (confirm('Are you sure you want to stop the generation?')) {
                 window.location.reload();
             }
         };
+        buttonContainer.appendChild(stopBtn);
+
+        // Create timeout notification
+        const timeoutNotif = document.createElement('div');
+        timeoutNotif.className = 'timeout-notification text-warning';
+        timeoutNotif.innerHTML = '<i class="fas fa-clock me-2"></i>Taking longer than expected...';
+        timeoutNotif.style.display = 'none';
+        buttonContainer.appendChild(timeoutNotif);
 
         // Store original text and disable button
         button.disabled = true;
@@ -122,13 +141,10 @@ document.addEventListener('DOMContentLoaded', function() {
         button.dataset.originalText = button.innerHTML;
         button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
 
-        // Add stop button after the generate button
-        button.parentNode.insertBefore(stopBtn, button.nextSibling);
-
-        // Show stop button after timeout
+        // Show stop button and notification after timeout
         setTimeout(() => {
             stopBtn.classList.add('visible');
-            button.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Taking longer than expected...';
+            timeoutNotif.style.display = 'inline-block';
         }, timeout);
     };
 
