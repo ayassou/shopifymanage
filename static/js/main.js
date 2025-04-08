@@ -130,9 +130,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add form submission handler
     document.addEventListener('DOMContentLoaded', () => {
+        console.log('Page loaded, initializing form handlers...');
         const form = document.querySelector('form');
         if (form) {
+            console.log('Form found, attaching submit handler...');
             form.addEventListener('submit', (e) => {
+                console.log('Form submitted, processing...');
                 const generateButton = e.submitter;
                 if (generateButton && generateButton.classList.contains('generate-button')) {
                     showLoading(generateButton, new FormData(form));

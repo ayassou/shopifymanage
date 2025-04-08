@@ -389,8 +389,11 @@ def ai_settings():
 @app.route('/ai/generator', methods=['GET', 'POST'])
 def ai_generator():
     """Route for the AI product generator"""
+    logger.info('AI Generator endpoint called')
+    
     # Check if AI settings exist in the database
     active_settings = AISettings.query.filter_by(is_active=True).first()
+    logger.info(f'Active AI settings found: {bool(active_settings)}')
     form = AIGeneratorForm()
     
     if form.validate_on_submit():
