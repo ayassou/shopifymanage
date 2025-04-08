@@ -127,6 +127,19 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.appendChild(loadingIndicator);
 
 
+    // Add form submission handler
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                const generateButton = e.submitter;
+                if (generateButton && generateButton.classList.contains('generate-button')) {
+                    showLoading(generateButton, new FormData(form));
+                }
+            });
+        }
+    });
+
     // Add form submission handlers to all generator forms
     document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', function(e) {
