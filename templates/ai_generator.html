@@ -8,7 +8,7 @@
         <i class="fas fa-robot me-2"></i>
         AI Product Generator
     </h1>
-    
+
     <div class="row">
         <div class="col-lg-8">
             <!-- AI Settings Warning -->
@@ -26,7 +26,7 @@
                 </a>
             </div>
             {% endif %}
-            
+
             <!-- Generator Form -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-dark">
@@ -38,7 +38,7 @@
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('main.ai_generator') }}" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
-                        
+
                         <!-- Input Type Selection -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">{{ form.input_type.label }}</label>
@@ -63,7 +63,7 @@
                                 {% endfor %}
                             </div>
                         </div>
-                        
+
                         <!-- URL Input Section -->
                         <div id="url-section" class="input-section mb-4">
                             <div class="mb-3">
@@ -81,7 +81,7 @@
                                 </div>
                                 {% endif %}
                             </div>
-                            
+
                             <div class="form-check form-switch">
                                 {{ form.extract_images(class="form-check-input") }}
                                 <label class="form-check-label" for="{{ form.extract_images.id }}">
@@ -91,7 +91,7 @@
                                 <div class="form-text">{{ form.extract_images.description }}</div>
                             </div>
                         </div>
-                        
+
                         <!-- Text Description Section -->
                         <div id="text-section" class="input-section mb-4" style="display: none;">
                             <div class="mb-3">
@@ -110,7 +110,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
+
                         <!-- Partial Data Section -->
                         <div id="partial-data-section" class="input-section mb-4" style="display: none;">
                             <div class="row">
@@ -142,7 +142,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Common Settings -->
                         <div class="card bg-dark border-secondary mb-4">
                             <div class="card-header bg-dark border-secondary">
@@ -172,7 +172,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <button type="submit" class="btn btn-primary" {% if not ai_settings %}disabled{% endif %}>
                                 <i class="fas fa-bolt me-2"></i>
@@ -183,7 +183,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-lg-4">
             <!-- Info Box -->
             <div class="card shadow-sm mb-4">
@@ -195,28 +195,28 @@
                 </div>
                 <div class="card-body">
                     <p>The AI Product Generator creates formatted product data files ready for upload to Shopify. Choose your preferred input method:</p>
-                    
+
                     <div class="mb-3">
                         <h6><i class="fas fa-link me-2"></i> URL Scraping</h6>
                         <p class="small">Enter a product page URL, and the AI will extract product details, descriptions, and images automatically.</p>
                     </div>
-                    
+
                     <div class="mb-3">
                         <h6><i class="fas fa-align-left me-2"></i> Text Description</h6>
                         <p class="small">Describe your product(s) in natural language, and the AI will generate structured product data.</p>
                     </div>
-                    
+
                     <div class="mb-3">
                         <h6><i class="fas fa-list-ul me-2"></i> Partial Data</h6>
                         <p class="small">Enter the information you have, and the AI will fill in the gaps to create complete product listings.</p>
                     </div>
-                    
+
                     <div class="alert alert-secondary mb-0">
                         <strong>Note:</strong> Generated product data will be available for preview before uploading to Shopify.
                     </div>
                 </div>
             </div>
-            
+
             <!-- AI Provider Info -->
             {% if ai_settings %}
             <div class="card shadow-sm mb-4">
@@ -257,36 +257,42 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Get all radio inputs
         var radioInputs = document.querySelectorAll('input[name="{{ form.input_type.name }}"]');
-        
+
         // Get all section divs
         var urlSection = document.getElementById('url-section');
         var textSection = document.getElementById('text-section');
         var partialDataSection = document.getElementById('partial-data-section');
-        
+
         // Function to toggle sections based on selected input type
         function toggleSections() {
             var selectedValue = '';
-            
+
             // Find selected radio button
             radioInputs.forEach(function(radio) {
                 if (radio.checked) {
                     selectedValue = radio.value;
                 }
             });
-            
+
             // Show/hide sections based on selection
             urlSection.style.display = selectedValue === 'url' ? 'block' : 'none';
             textSection.style.display = selectedValue === 'text' ? 'block' : 'none';
             partialDataSection.style.display = selectedValue === 'partial_data' ? 'block' : 'none';
         }
-        
+
         // Add event listeners to radio buttons
         radioInputs.forEach(function(radio) {
             radio.addEventListener('change', toggleSections);
         });
-        
+
         // Initial toggle based on default selection
         toggleSections();
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (this.checkValidity()) {
+                const formData = new FormData(this);
+                showLoading(e.submitter, formData);
+            }
+        });
     });
 </script>
 {% endblock %}

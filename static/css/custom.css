@@ -91,3 +91,21 @@ body {
 .button-loading:hover {
     opacity: 0.7;
 }
+
+.button-loading {
+    position: relative;
+    cursor: not-allowed;
+}
+
+.button-loading .spinner {
+    margin-right: 8px;
+}
+
+.stop-generation {
+    display: none;
+    margin-left: 10px;
+}
+
+.stop-generation.visible {
+    display: inline-block;
+}

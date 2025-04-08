@@ -33,7 +33,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="card mb-4">
             <div class="card-header bg-info text-white">
                 <h5 class="card-title mb-0">
@@ -50,7 +50,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Right content area with the form -->
     <div class="col-md-9">
         <div class="card">
@@ -61,10 +61,10 @@
             </div>
             <div class="card-body">
                 <p class="lead">Generate high-quality blog content for your Shopify store with AI assistance.</p>
-                
+
                 <form method="POST" action="{{ url_for('main.blog_generator') }}">
                     {{ form.csrf_token }}
-                    
+
                     <div class="accordion mb-4" id="blogGeneratorAccordion">
                         <!-- Basic Information -->
                         <div class="accordion-item">
@@ -82,7 +82,7 @@
                                             <div class="form-text text-muted">{{ form.title.description }}</div>
                                         {% endif %}
                                     </div>
-                                    
+
                                     <div class="mb-3">
                                         {{ form.topic.label(class="form-label") }}
                                         {{ form.topic(class="form-control", placeholder="e.g., Summer Fashion Trends, Benefits of Organic Products") }}
@@ -90,7 +90,7 @@
                                             <div class="form-text text-muted">{{ form.topic.description }}</div>
                                         {% endif %}
                                     </div>
-                                    
+
                                     <div class="mb-3">
                                         {{ form.keywords.label(class="form-label") }}
                                         {{ form.keywords(class="form-control", rows=3, placeholder="Enter keywords separated by commas") }}
@@ -101,7 +101,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Content Configuration -->
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="contentHeading">
@@ -121,7 +121,7 @@
                                             {{ form.tone(class="form-select") }}
                                         </div>
                                     </div>
-                                    
+
                                     <div class="mb-3">
                                         {{ form.target_audience.label(class="form-label") }}
                                         {{ form.target_audience(class="form-control", placeholder="e.g., new parents, tech enthusiasts, homeowners") }}
@@ -129,7 +129,7 @@
                                             <div class="form-text text-muted">{{ form.target_audience.description }}</div>
                                         {% endif %}
                                     </div>
-                                    
+
                                     <div class="mb-3">
                                         {{ form.word_count.label(class="form-label") }}
                                         {{ form.word_count(class="form-control", type="number", min=300, max=5000) }}
@@ -140,7 +140,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Advanced Options -->
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="advancedHeading">
@@ -157,7 +157,7 @@
                                             <div class="form-text text-muted">{{ form.include_sections.description }}</div>
                                         {% endif %}
                                     </div>
-                                    
+
                                     <div class="form-check mb-3">
                                         {{ form.include_faq(class="form-check-input") }}
                                         {{ form.include_faq.label(class="form-check-label") }}
@@ -165,7 +165,7 @@
                                             <div class="form-text text-muted">{{ form.include_faq.description }}</div>
                                         {% endif %}
                                     </div>
-                                    
+
                                     <div class="form-check mb-3">
                                         {{ form.include_cta(class="form-check-input") }}
                                         {{ form.include_cta.label(class="form-check-label") }}
@@ -173,7 +173,7 @@
                                             <div class="form-text text-muted">{{ form.include_cta.description }}</div>
                                         {% endif %}
                                     </div>
-                                    
+
                                     <div class="form-check mb-3">
                                         {{ form.reference_products(class="form-check-input") }}
                                         {{ form.reference_products.label(class="form-check-label") }}
@@ -181,7 +181,7 @@
                                             <div class="form-text text-muted">{{ form.reference_products.description }}</div>
                                         {% endif %}
                                     </div>
-                                    
+
                                     <div class="form-check mb-3">
                                         {{ form.seo_optimize(class="form-check-input") }}
                                         {{ form.seo_optimize.label(class="form-check-label") }}
@@ -189,7 +189,7 @@
                                             <div class="form-text text-muted">{{ form.seo_optimize.description }}</div>
                                         {% endif %}
                                     </div>
-                                    
+
                                     <div class="form-check mb-3">
                                         {{ form.generate_image(class="form-check-input") }}
                                         {{ form.generate_image.label(class="form-check-label") }}
@@ -201,14 +201,15 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="d-grid gap-2">
                         {{ form.submit(class="btn btn-primary btn-lg", type="submit") }}
                     </div>
                     <script>
-                        document.querySelector('form').addEventListener('submit', function() {
+                        document.querySelector('form').addEventListener('submit', function(e) {
                             if (this.checkValidity()) {
-                                showLoading();
+                                const formData = new FormData(this);
+                                showLoading(e.submitter, formData);
                             }
                         });
                     </script>
