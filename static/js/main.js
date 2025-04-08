@@ -129,20 +129,72 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     // Add form submission handler
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('Page loaded, initializing form handlers...');
-        const form = document.querySelector('form');
-        if (form) {
-            console.log('Form found, attaching submit handler...');
-            form.addEventListener('submit', (e) => {
-                console.log('Form submitted, processing...');
-                const generateButton = e.submitter;
-                if (generateButton && generateButton.classList.contains('generate-button')) {
-                    showLoading(generateButton, new FormData(form));
-                }
-            });
-        }
-    });
+    // Global console logging setup
+const debug = true;
+const log = (msg) => {
+    if (debug) console.log(`[DEBUG] ${msg}`);
+};
+
+// Make showLoading and calculateTimeout available globally
+window.showLoading = (button, formData) => {
+    log('Starting loading state...');
+    const timeout = window.calculateTimeout(formData);
+    log(`Calculated timeout: ${timeout}ms`);
+
+    // Create loading indicator
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'loading-indicator';
+    loadingIndicator.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <p>Generating Product...</p>
+    `;
+
+    // Store original button state
+    button.disabled = true;
+    button.classList.add('button-loading');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+    log('Button state updated');
+
+    // Show timeout notification after the calculated timeout
+    setTimeout(() => {
+        log('Timeout reached, showing notification');
+        const timeoutNotif = document.createElement('div');
+        timeoutNotif.className = 'timeout-notification';
+        timeoutNotif.innerHTML = '<i class="fas fa-clock me-2"></i>Taking longer than expected...';
+        button.parentNode.appendChild(timeoutNotif);
+    }, timeout);
+
+    // Return a cleanup function
+    return () => {
+        log('Cleaning up loading state');
+        button.disabled = false;
+        button.classList.remove('button-loading');
+        button.innerHTML = originalText;
+        const notif = button.parentNode.querySelector('.timeout-notification');
+        if (notif) notif.remove();
+    };
+};
+
+// Add form submission handler
+document.addEventListener('DOMContentLoaded', () => {
+    log('Page loaded, initializing form handlers...');
+    const form = document.querySelector('form');
+    if (form) {
+        log('Form found, attaching submit handler...');
+        form.addEventListener('submit', (e) => {
+            log('Form submitted, processing...');
+            const generateButton = e.submitter;
+            if (generateButton && generateButton.classList.contains('generate-button')) {
+                showLoading(generateButton, new FormData(form));
+            }
+        });
+    }
+});
 
     // Add form submission handlers to all generator forms
     document.querySelectorAll('form').forEach(form => {
