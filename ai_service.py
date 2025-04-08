@@ -49,6 +49,10 @@ class AIService:
     def generate_product_data(self, input_type, input_data, num_variants=1):
         """
         Central method to generate product data based on input type and data.
+        """
+        logger.info(f"Starting product data generation - Type: {input_type}")
+        logger.info(f"Input data summary: {str(input_data)[:100]}...")
+        logger.info(f"Requested variants: {num_variants}")
         
         Args:
             input_type (str): Type of input ('url', 'text', or 'partial_data')

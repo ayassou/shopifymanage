@@ -206,13 +206,74 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    const form = document.getElementById('store-creation-form');
-    if (form) {
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const submitButton = this.querySelector('button[type="submit"]');
-            const formData = new FormData(this);
-            showLoading(submitButton, formData);
+    // Logging utility
+const log = (msg) => {
+    console.log(`[Client] ${msg}`);
+};
+
+// Calculate timeout based on form data
+const calculateTimeout = (formData) => {
+    return 120000; // 2 minutes default timeout
+};
+
+// Loading state handler
+const showLoading = (button, formData) => {
+    log('Starting generation process...');
+    
+    // Create loading indicator
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'loading-indicator';
+    loadingIndicator.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <p>Processing your request...</p>
+    `;
+    document.body.appendChild(loadingIndicator);
+
+    // Update button state
+    button.disabled = true;
+    button.classList.add('button-loading');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+    
+    log('UI updated to loading state');
+    return originalText;
+};
+
+const hideLoading = () => {
+    log('Generation process completed');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    if (loadingIndicator) {
+        loadingIndicator.remove();
+    }
+    
+    // Re-enable all generate buttons
+    document.querySelectorAll('button[type="submit"]').forEach(button => {
+        button.disabled = false;
+        button.classList.remove('button-loading');
+        if (button.dataset.originalText) {
+            button.innerHTML = button.dataset.originalText;
+        }
+    });
+};
+
+// Form submission handler
+const form = document.getElementById('store-creation-form');
+if (form) {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const submitButton = this.querySelector('button[type="submit"]');
+        const formData = new FormData(this);
+        
+        log('Form submitted - collecting data');
+        formData.forEach((value, key) => {
+            log(`Form field: ${key} = ${value}`);
+        });
+        
+        const originalText = showLoading(submitButton, formData);
 
             try {
                 const response = await fetch(this.action, {
