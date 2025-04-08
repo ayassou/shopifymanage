@@ -271,9 +271,21 @@ class AIService:
             )
             
             # Parse the response
-            result = json.loads(response.choices[0].message.content)
-            logger.debug("Successfully generated product data from text description")
-            return result
+            try:
+                # First try to get structured content
+                result = response.choices[0].message.content
+                if isinstance(result, str):
+                    result = json.loads(result)
+                elif isinstance(result, dict):
+                    result = result
+                else:
+                    raise ValueError("Unexpected response format")
+                    
+                logger.debug("Successfully generated product data from text description")
+                return result
+            except Exception as e:
+                logger.error(f"Error parsing AI response: {str(e)}")
+                raise ValueError("Failed to parse AI response into structured data")
             
         except Exception as e:
             logger.error(f"Failed to generate product data from text: {str(e)}")
